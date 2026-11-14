@@ -1,0 +1,63 @@
+.rocket-diagram {
+  --rd-line: #fff;
+  --rd-bg: #000;
+
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+  max-height: calc(100vh - 4rem);
+}
+
+.rocket-diagram * {
+  vector-effect: non-scaling-stroke;
+}
+
+.rd-grid-minor,
+.rd-grid-major {
+  fill: none;
+  stroke: var(--rd-line);
+}
+
+.rd-grid-minor {
+  stroke-width: 0.5;
+  opacity: 0.05;
+}
+
+.rd-grid-major {
+  stroke-width: 0.75;
+  opacity: 0.1;
+}
+
+.rd-outline {
+  fill: none;
+  stroke: var(--rd-line);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* Filled with the background so engines in front hide the ones behind. */
+.rd-engine {
+  fill: var(--rd-bg);
+  stroke: var(--rd-line);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.rd-engine--back {
+  stroke-opacity: 0.55;
+}
+
+.rd-hidden {
+  fill: none;
+  stroke: var(--rd-line);
+  stroke-width: 0.75;
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+.rd-center {
+  stroke: var(--rd-line);
+  stroke-width: 0.75;
+  stroke-dasharray: 14 3 2 3;
+  opacity: 0.45;
+}
