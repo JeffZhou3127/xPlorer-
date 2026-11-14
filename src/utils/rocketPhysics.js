@@ -1,0 +1,157 @@
+// Simplified rocket performance model for the design screen.
+// Masses are in tonnes, pressures in pascals, altitudes in kilometres.
+
+export const G0 = 9.80665; // standard gravity, m/s²
+const SEA_LEVEL_PRESSURE = 101325;
+const SCALE_HEIGHT_KM = 8.5; // isothermal atmosphere approximation
+
+// Spacecraft on top of the stack (capsule, service module and fairing).
+export const PAYLOAD_MASS = 12;
+
+// Delta-v a launcher needs to reach low Earth orbit, including gravity and drag losses.
+export const ORBIT_DELTA_V = 9400;
+
+// Characteristic velocity (c*), ratio of specific heats of the exhaust,
+// and average bulk density of the propellant load (t/m³).
+export const PROPELLANTS = {
+  kerolox: { label: "Kerolox (RP-1 / LOX)", cStar: 1800, gamma: 1.22, density: 1.03 },
+  methalox: { label: "Methalox (CH₄ / LOX)", cStar: 1860, gamma: 1.2, density: 0.83 },
+  hydrolox: { label: "Hydrolox (LH₂ / LOX)", cStar: 2330, gamma: 1.2, density: 0.36 },
+};
+
+// Higher chamber pressure keeps the nozzle working well at sea level;
+// efficiency covers propellant spent driving the turbopumps.
+export const ENGINE_CYCLES = {
+  "gas-generator": { label: "Gas generator", chamberPressure: 7e6 },
+  "staged-combustion": { label: "Staged combustion", chamberPressure: 20e6, efficiency: 0.99 },
+  "full-flow": { label: "Full flow staged combustion", chamberPressure: 30e6, efficiency: 0.995 },
+};
+
+// Open cycle dumps the turbine exhaust overboard; closed cycle routes it into the nozzle.
+export const GAS_GENERATOR_VARIANTS = {
+  open: { label: "Open cycle", efficiency: 0.96 },
+  closed: { label: "Closed cycle", efficiency: 0.98 },
+};
+
+export const EXPANSION_RATIO_RANGE = { min: 5, max: 300 };
+// Above ~100 km (the Kármán line) the air is effectively vacuum.
+export const ALTITUDE_RANGE_KM = { min: 0, max: 110 };
+export const ENGINE_COUNT_RANGE = { min: 1, max: 9 };
+
+const COMBUSTION_EFFICIENCY = 0.98;
+const TANK_MASS_PER_M3 = 0.055; // tank structure per cubic metre of propellant, t
+const ENGINE_MASS = 1; // per engine, t
+const STAGE_HARDWARE_MASS = 1; // plumbing, avionics and interstage per stage, t
+const THROAT_AREA = 0.08; // nozzle throat area of one engine, m² (about Merlin-sized)
+
+// Nozzle flow separates once wall pressure drops below ~40% of ambient (Summerfield criterion).
+const SEPARATION_RATIO = 0.4;
+
+export const ambientPressure = (altitudeKm) =>
+  SEA_LEVEL_PRESSURE * Math.exp(-altitudeKm / SCALE_HEIGHT_KM);
+
+// Isentropic nozzle relations (pressure ratios are relative to chamber pressure).
+const pressureRatioAtMach = (mach, g) => (1 + ((g - 1) / 2) * mach * mach) ** (-g / (g - 1));
+
+const areaRatioAtMach = (mach, g) =>
+  (1 / mach) * ((2 / (g + 1)) * (1 + ((g - 1) / 2) * mach * mach)) ** ((g + 1) / (2 * (g - 1)));
+
+const machAtPressureRatio = (ratio, g) =>
+  Math.sqrt((2 / (g - 1)) * (ratio ** (-(g - 1) / g) - 1));
+
+// Supersonic exit Mach number for an expansion ratio (bisection; area ratio rises with Mach).
+const machAtAreaRatio = (areaRatio, g) => {
+  let low = 1;
+  let high = 100;
+  for (let i = 0; i < 60; i++) {
+    const mid = (low + high) / 2;
+    if (areaRatioAtMach(mid, g) < areaRatio) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+};
+
+const thrustCoefficient = (areaRatio, exitRatio, ambientRatio, g) =>
+  Math.sqrt(
+    ((2 * g * g) / (g - 1)) *
+      (2 / (g + 1)) ** ((g + 1) / (g - 1)) *
+      (1 - exitRatio ** ((g - 1) / g)),
+  ) +
+  (exitRatio - ambientRatio) * areaRatio;
+
+const engineEfficiency = (stage) =>
+  COMBUSTION_EFFICIENCY *
+  (stage.cycle === "gas-generator"
+    ? GAS_GENERATOR_VARIANTS[stage.gasGenerator].efficiency
+    : ENGINE_CYCLES[stage.cycle].efficiency);
+
+// Thrust coefficient and engine efficiency at the given altitude (Infinity for vacuum).
+const nozzlePerformance = (stage, altitudeKm) => {
+  const { gamma } = PROPELLANTS[stage.propellant];
+  const { chamberPressure } = ENGINE_CYCLES[stage.cycle];
+  const ambientRatio = ambientPressure(altitudeKm) / chamberPressure;
+
+  let areaRatio = stage.expansionRatio;
+  let exitRatio = pressureRatioAtMach(machAtAreaRatio(areaRatio, gamma), gamma);
+
+  // A badly over-expanded nozzle separates; only the part upstream of that point produces thrust.
+  if (exitRatio < SEPARATION_RATIO * ambientRatio) {
+    exitRatio = SEPARATION_RATIO * ambientRatio;
+    areaRatio = areaRatioAtMach(machAtPressureRatio(exitRatio, gamma), gamma);
+  }
+
+  const cf = Math.max(0, thrustCoefficient(areaRatio, exitRatio, ambientRatio, gamma));
+  return { cf, efficiency: engineEfficiency(stage) };
+};
+
+// Specific impulse in seconds at the given altitude (Infinity for vacuum).
+export const specificImpulse = (stage, altitudeKm) => {
+  const { cf, efficiency } = nozzlePerformance(stage, altitudeKm);
+  return (PROPELLANTS[stage.propellant].cStar * efficiency * cf) / G0;
+};
+
+// Total thrust of the stage's engines in newtons. Every engine has the same throat size,
+// so a higher chamber pressure pushes more propellant through it and makes more thrust.
+export const stageThrust = (stage, altitudeKm) => {
+  const { cf, efficiency } = nozzlePerformance(stage, altitudeKm);
+  return stage.engines * ENGINE_CYCLES[stage.cycle].chamberPressure * THROAT_AREA * cf * efficiency;
+};
+
+export const dryMass = (stage) =>
+  (stage.fuel / PROPELLANTS[stage.propellant].density) * TANK_MASS_PER_M3 +
+  stage.engines * ENGINE_MASS +
+  STAGE_HARDWARE_MASS;
+
+// Per-stage performance; `stages` is ordered from the bottom stage up.
+// Each stage pushes everything above it, so mass is accumulated from the top down.
+export const computeRocketStats = (stages) => {
+  const results = Array.from({ length: stages.length });
+  let massAbove = PAYLOAD_MASS;
+  let totalDeltaV = 0;
+
+  for (let i = stages.length - 1; i >= 0; i--) {
+    const stage = stages[i];
+    const dry = dryMass(stage);
+    const startMass = massAbove + dry + stage.fuel;
+    const endMass = massAbove + dry;
+    const isp = specificImpulse(stage, stage.altitude);
+    const deltaV = isp * G0 * Math.log(startMass / endMass);
+    const thrust = stageThrust(stage, stage.altitude);
+
+    results[i] = {
+      id: stage.id,
+      isp,
+      thrust,
+      // Measured at ignition, when the stage is heaviest; masses are in tonnes.
+      thrustToWeight: thrust / (startMass * 1000 * G0),
+      dryMass: dry,
+      wetMass: dry + stage.fuel,
+      startMass,
+      deltaV,
+    };
+    massAbove = startMass;
+    totalDeltaV += deltaV;
+  }
+
+  return { stages: results, totalDeltaV, liftoffMass: massAbove };
+};
