@@ -14,6 +14,17 @@ const FUEL_RANGES = [
 ];
 const MAX_STAGES = FUEL_RANGES.length;
 
+// Engine count limits by position counted from the bottom stage up (like `stages`).
+// The booster has the widest base, so it can fit the largest cluster.
+const ENGINE_RANGES = [
+  { min: 1, max: 9 },
+  { min: 1, max: 5 },
+  { min: 1, max: 3 },
+];
+
+// Placeholder mission budget in millions of dollars.
+const BUDGET = 60;
+
 // Default engine count by position from the top: boosters need far more thrust.
 const DEFAULT_ENGINES = [1, 2, 7];
 
@@ -23,7 +34,18 @@ const STAGING_ALTITUDE_STEP = 50;
 // Ranges for a rocket of `count` stages, indexed from the bottom stage up (like `stages`).
 const rangesFor = (count) => FUEL_RANGES.slice(0, count).toReversed();
 
-const clampFuel = (fuel, { min, max }) => Math.min(max, Math.max(min, fuel));
+const clamp = (value, { min, max }) => Math.min(max, Math.max(min, value));
+
+// Adding or removing a stage shifts the others to new positions, so re-fit every
+// stage's fuel and engine count to the limits of the position it now sits in.
+const fitToPositions = (stages) => {
+  const fuelRanges = rangesFor(stages.length);
+  return stages.map((stage, index) => ({
+    ...stage,
+    fuel: clamp(stage.fuel, fuelRanges[index]),
+    engines: clamp(stage.engines, ENGINE_RANGES[index]),
+  }));
+};
 
 // New stages always start at the bottom of the stack, on the launch pad.
 // The very first stage is the top stage, so it gets a vacuum-sized nozzle.
@@ -46,31 +68,26 @@ const M1S1 = () => {
   const [stages, setStages] = useState(() => [createStage(0)]);
   const stats = computeRocketStats(stages);
 
-  // New stages go underneath as the new booster; the stages above keep their position and fuel.
-  // Stages lifted off the pad get a default altitude unless the user already set one.
+  // New stages go underneath as the new booster; the stages above are pushed up a position,
+  // which can lower their engine limit. Stages lifted off the pad get a default altitude
+  // unless the user already set one.
   const addStage = () =>
     setStages((current) =>
       current.length >= MAX_STAGES
         ? current
-        : [
+        : fitToPositions([
             createStage(current.length),
             ...current.map((stage, i) =>
               stage.altitude === 0 ? { ...stage, altitude: (i + 1) * STAGING_ALTITUDE_STEP } : stage,
             ),
-          ],
+          ]),
     );
 
-  // Removing a stage moves the ones below it up into a smaller range, so re-fit every stage.
+  // Removing a stage moves the ones below it up into a smaller fuel range, so re-fit every stage.
   const removeStage = (id) =>
-    setStages((current) => {
-      if (current.length <= 1) return current;
-      const remaining = current.filter((stage) => stage.id !== id);
-      const ranges = rangesFor(remaining.length);
-      return remaining.map((stage, index) => ({
-        ...stage,
-        fuel: clampFuel(stage.fuel, ranges[index]),
-      }));
-    });
+    setStages((current) =>
+      current.length <= 1 ? current : fitToPositions(current.filter((stage) => stage.id !== id)),
+    );
 
   const updateStage = (id, patch) =>
     setStages((current) =>
@@ -84,6 +101,7 @@ const M1S1 = () => {
           stages={stages}
           maxStages={MAX_STAGES}
           fuelRanges={rangesFor(stages.length)}
+          engineRanges={ENGINE_RANGES}
           onAddStage={addStage}
           onRemoveStage={removeStage}
           onStageChange={updateStage}
@@ -94,7 +112,10 @@ const M1S1 = () => {
         <RocketStats
           stages={stages}
           stats={stats}
+          budget={BUDGET}
           onAltitudeChange={(id, altitude) => updateStage(id, { altitude })}
+          // TODO: navigate to the next step of the mission once it exists.
+          onContinue={() => {}}
         />
       }
     />

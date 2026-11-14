@@ -10,15 +10,26 @@ xPlorer+ is an early-stage React app (Vite template with the default demo conten
 
 `src/views/scenario1/M1S1.jsx` owns all state and lays the page out with `ThreePane`:
 
-- **Left, `RocketForm`**: one `StageCard` per stage. Each card has fuel amount, fuel type (kerolox, methalox or hydrolox), engine cycle (gas generator, staged combustion or full flow), a gas-generator exhaust choice (open or closed, shown only for gas generator), engine count and nozzle expansion ratio.
-- **Centre, `RocketDiagram`**: a white-stroke SVG blueprint. It has an ogive nose cone, a fairing around an Orion-like service module, and stage tanks whose height scales with fuel.
-- **Right, `RocketStats`**: total Δv against `ORBIT_DELTA_V`, liftoff mass and payload. Each stage has an altitude slider (0–110 km) and shows Δv, Isp at that altitude, thrust-to-weight ratio and wet/dry mass.
+- **Left, `RocketForm`**: one `StageCard` per stage. Fields in order: fuel type (kerolox, methalox or hydrolox), fuel amount, engine cycle (gas generator, staged combustion or full flow), gas-generator exhaust (open or closed, shown only for gas generator), nozzle expansion ratio (5–100) and engine count.
+- **Centre, `RocketDiagram`**: a white-stroke SVG blueprint that updates live. It has an ogive nose cone, a fairing around an Orion-like service module, bell-shaped nozzles, and stage tanks whose height reflects propellant volume (fuel mass ÷ propellant density), so hydrolox stages are much taller.
+- **Right, `RocketStats`**:
+  - Totals: total Δv, liftoff mass and payload.
+  - Meters:
+    - Low Earth orbit (`ORBIT_DELTA_V`).
+    - Mars orbit round trip (`MARS_ROUND_TRIP_DELTA_V`), followed by an italic note that both are minimum estimates.
+    - Cost against budget, which turns red when over.
+  - Each stage has an altitude slider (0–110 km) and shows Δv, Isp at that altitude, thrust-to-weight ratio, wet/dry mass and cost.
+- **Continue button**:
+  - It depends **only on the budget** (`BUDGET` in `M1S1.jsx`, $60M placeholder). The Δv meters are guidance only.
+  - When over budget it uses `aria-disabled` instead of `disabled`, so it can still be hovered or focused to show a tooltip with the reason.
+  - `onContinue` is a TODO no-op until the next mission step exists.
+- **"?" tooltips**: `InfoTip` (`src/components/InfoTip/`) is a small help button whose bubble is portalled to `document.body`, because the side panes scroll and would clip it. The explanatory text lives in `src/utils/glossary.js` (`GLOSSARY[key] = { term, text }`) and is referenced by key.
 
 Stage conventions:
 
 - **Order**: `stages[0]` is the bottom stage (Stage 1). The panels list stages top-first using `toReversed()`.
 - **Shape**: `{ id, fuel, propellant, cycle, gasGenerator, expansionRatio, engines, altitude }`.
-- **Limits**: at most 3 stages.
+- **Limits**: at most 3 stages. Engine count limits depend on position from the bottom (`ENGINE_RANGES`): 1–9 for the booster, 1–5 for the second stage, 1–3 for the third.
 - **Adding stages**: a new stage goes **underneath** the stack as the new booster.
 - **Fuel ranges**: they depend on a stage's position counted from the top (`FUEL_RANGES`, via `rangesFor(count)`), so a lone stage gets the upper-stage range. Removing a stage re-clamps fuel.
 - **Defaults**: they also depend on position from the top. The top stage gets a vacuum nozzle (ε 80) and 1 engine; lower stages get ε 16 and 2 or 7 engines. Stages above the booster default to 50 km per position.
@@ -31,8 +42,14 @@ Stage conventions:
 - **Thrust-to-weight**: measured at stage ignition.
 - **Δv**: from the rocket equation, with mass accumulated from the top down on top of a 12 t payload.
 - **Dry mass**: tank mass scaled by propellant density, plus 1 t per engine, plus 1 t per stage.
+- **Orbit targets**: `ORBIT_DELTA_V` is the circular orbital velocity √(GM/r) at `ORBIT_ALTITUDE_KM` (300 km), about 7,730 m/s. It leaves out gravity and drag losses. `MARS_ROUND_TRIP_DELTA_V` adds trans-Mars injection (3.6 km/s), Mars capture (2.1) and trans-Earth injection (2.1), and assumes the return is aerobraked.
+- **Cost** (`stageCost`, in $M; every figure is a placeholder):
+  - Engines: each costs a per-cycle price (`ENGINE_CYCLES[].engineCost`), multiplied by the gas-generator `costFactor` (closed is pricier) and by 1% extra per unit of expansion ratio.
+  - Tanks: cost per m³ of propellant, scaled by the propellant's `tankCostFactor` (hydrolox is highest).
+  - Propellant: priced per tonne.
+  - Fixed hardware: $2M per stage.
+  - `computeRocketStats` returns `totalCost` and a `cost` for each stage.
 - **Accuracy**: Isp lands within a few percent of real engines (Merlin, Raptor, RL10).
-- **Not modelled**: fuel type doesn't yet change tank height in the diagram.
 
 ## Commands
 

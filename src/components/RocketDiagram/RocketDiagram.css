@@ -1,5 +1,6 @@
 .rocket-diagram {
   --rd-line: #fff;
+  --rd-bg: #000;
 
   width: 100%;
   max-width: 34rem;
@@ -32,6 +33,18 @@
   stroke: var(--rd-line);
   stroke-width: 1.5;
   stroke-linejoin: round;
+}
+
+/* Filled with the background so engines in front hide the ones behind. */
+.rd-engine {
+  fill: var(--rd-bg);
+  stroke: var(--rd-line);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.rd-engine--back {
+  stroke-opacity: 0.55;
 }
 
 .rd-hidden {

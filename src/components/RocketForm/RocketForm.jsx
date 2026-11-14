@@ -5,6 +5,7 @@ const RocketForm = ({
   stages,
   maxStages,
   fuelRanges,
+  engineRanges,
   onAddStage,
   onRemoveStage,
   onStageChange,
@@ -30,6 +31,8 @@ const RocketForm = ({
               stage={stage}
               minFuel={fuelRanges[index].min}
               maxFuel={fuelRanges[index].max}
+              minEngines={engineRanges[index].min}
+              maxEngines={engineRanges[index].max}
               canRemove={canRemove}
               onChange={(patch) => onStageChange(stage.id, patch)}
               onRemove={() => onRemoveStage(stage.id)}

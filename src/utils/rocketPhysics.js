@@ -8,35 +8,76 @@ const SCALE_HEIGHT_KM = 8.5; // isothermal atmosphere approximation
 // Spacecraft on top of the stack (capsule, service module and fairing).
 export const PAYLOAD_MASS = 12;
 
-// Delta-v a launcher needs to reach low Earth orbit, including gravity and drag losses.
-export const ORBIT_DELTA_V = 9400;
+// Low Earth orbit target: circular orbital velocity v = √(GM / r) at 300 km altitude
+// (about 7,726 m/s). Gravity and drag losses on the way up are not included.
+const EARTH_GM = 3.986004418e14; // m³/s²
+const EARTH_RADIUS = 6371e3; // m
+export const ORBIT_ALTITUDE_KM = 300;
+export const ORBIT_DELTA_V = Math.sqrt(EARTH_GM / (EARTH_RADIUS + ORBIT_ALTITUDE_KM * 1000));
+
+// Minimum delta-v for a round trip to Mars orbit (no landing), starting from Earth's surface:
+// reach LEO (above), trans-Mars injection (~3.6 km/s), capture into low Mars orbit (~2.1),
+// trans-Earth injection (~2.1), then aerobrake in Earth's atmosphere on return (~0).
+export const MARS_ROUND_TRIP_DELTA_V = ORBIT_DELTA_V + 3600 + 2100 + 2100;
 
 // Characteristic velocity (c*), ratio of specific heats of the exhaust,
-// and average bulk density of the propellant load (t/m³).
+// average bulk density of the propellant load (t/m³), propellant price ($M per tonne)
+// and a tank cost multiplier (cryogenic hydrogen needs insulated, more expensive tanks).
 export const PROPELLANTS = {
-  kerolox: { label: "Kerolox (RP-1 / LOX)", cStar: 1800, gamma: 1.22, density: 1.03 },
-  methalox: { label: "Methalox (CH₄ / LOX)", cStar: 1860, gamma: 1.2, density: 0.83 },
-  hydrolox: { label: "Hydrolox (LH₂ / LOX)", cStar: 2330, gamma: 1.2, density: 0.36 },
+  kerolox: {
+    label: "Kerolox (RP-1 / LOX)",
+    cStar: 1800,
+    gamma: 1.22,
+    density: 1.03,
+    pricePerTonne: 0.0004,
+    tankCostFactor: 1,
+  },
+  methalox: {
+    label: "Methalox (CH₄ / LOX)",
+    cStar: 1860,
+    gamma: 1.2,
+    density: 0.83,
+    pricePerTonne: 0.0003,
+    tankCostFactor: 1.1,
+  },
+  hydrolox: {
+    label: "Hydrolox (LH₂ / LOX)",
+    cStar: 2330,
+    gamma: 1.2,
+    density: 0.36,
+    pricePerTonne: 0.004,
+    tankCostFactor: 1.6,
+  },
 };
 
 // Higher chamber pressure keeps the nozzle working well at sea level;
 // efficiency covers propellant spent driving the turbopumps.
+// Engine cost ($M each) rises with the complexity of the cycle.
 export const ENGINE_CYCLES = {
-  "gas-generator": { label: "Gas generator", chamberPressure: 7e6 },
-  "staged-combustion": { label: "Staged combustion", chamberPressure: 20e6, efficiency: 0.99 },
-  "full-flow": { label: "Full flow staged combustion", chamberPressure: 30e6, efficiency: 0.995 },
+  "gas-generator": { label: "Gas generator", chamberPressure: 7e6, engineCost: 2 },
+  "staged-combustion": {
+    label: "Staged combustion",
+    chamberPressure: 20e6,
+    efficiency: 0.99,
+    engineCost: 5,
+  },
+  "full-flow": {
+    label: "Full flow staged combustion",
+    chamberPressure: 30e6,
+    efficiency: 0.995,
+    engineCost: 8,
+  },
 };
 
 // Open cycle dumps the turbine exhaust overboard; closed cycle routes it into the nozzle.
 export const GAS_GENERATOR_VARIANTS = {
-  open: { label: "Open cycle", efficiency: 0.96 },
-  closed: { label: "Closed cycle", efficiency: 0.98 },
+  open: { label: "Open cycle", efficiency: 0.96, costFactor: 1 },
+  closed: { label: "Closed cycle", efficiency: 0.98, costFactor: 1.25 },
 };
 
-export const EXPANSION_RATIO_RANGE = { min: 5, max: 300 };
+export const EXPANSION_RATIO_RANGE = { min: 5, max: 100 };
 // Above ~100 km (the Kármán line) the air is effectively vacuum.
 export const ALTITUDE_RANGE_KM = { min: 0, max: 110 };
-export const ENGINE_COUNT_RANGE = { min: 1, max: 9 };
 
 const COMBUSTION_EFFICIENCY = 0.98;
 const TANK_MASS_PER_M3 = 0.055; // tank structure per cubic metre of propellant, t
@@ -117,6 +158,31 @@ export const stageThrust = (stage, altitudeKm) => {
   return stage.engines * ENGINE_CYCLES[stage.cycle].chamberPressure * THROAT_AREA * cf * efficiency;
 };
 
+// Costs are in millions of dollars (placeholder figures for the game).
+const TANK_COST_PER_M3 = 0.02;
+const STAGE_HARDWARE_COST = 2; // avionics, plumbing, interstage
+// A bigger nozzle bell needs more material and cooling: +1% engine cost per unit of ratio.
+const NOZZLE_COST_PER_RATIO = 0.01;
+
+export const stageCost = (stage) => {
+  const propellant = PROPELLANTS[stage.propellant];
+  const cycleFactor =
+    stage.cycle === "gas-generator" ? GAS_GENERATOR_VARIANTS[stage.gasGenerator].costFactor : 1;
+  const engineCost =
+    ENGINE_CYCLES[stage.cycle].engineCost *
+    cycleFactor *
+    (1 + stage.expansionRatio * NOZZLE_COST_PER_RATIO);
+  const tankCost =
+    (stage.fuel / propellant.density) * TANK_COST_PER_M3 * propellant.tankCostFactor;
+
+  return (
+    stage.engines * engineCost +
+    tankCost +
+    stage.fuel * propellant.pricePerTonne +
+    STAGE_HARDWARE_COST
+  );
+};
+
 export const dryMass = (stage) =>
   (stage.fuel / PROPELLANTS[stage.propellant].density) * TANK_MASS_PER_M3 +
   stage.engines * ENGINE_MASS +
@@ -128,6 +194,7 @@ export const computeRocketStats = (stages) => {
   const results = Array.from({ length: stages.length });
   let massAbove = PAYLOAD_MASS;
   let totalDeltaV = 0;
+  let totalCost = 0;
 
   for (let i = stages.length - 1; i >= 0; i--) {
     const stage = stages[i];
@@ -137,8 +204,10 @@ export const computeRocketStats = (stages) => {
     const isp = specificImpulse(stage, stage.altitude);
     const deltaV = isp * G0 * Math.log(startMass / endMass);
     const thrust = stageThrust(stage, stage.altitude);
+    const cost = stageCost(stage);
 
     results[i] = {
+      cost,
       id: stage.id,
       isp,
       thrust,
@@ -151,7 +220,8 @@ export const computeRocketStats = (stages) => {
     };
     massAbove = startMass;
     totalDeltaV += deltaV;
+    totalCost += cost;
   }
 
-  return { stages: results, totalDeltaV, liftoffMass: massAbove };
+  return { stages: results, totalDeltaV, totalCost, liftoffMass: massAbove };
 };
