@@ -21,7 +21,7 @@ const FieldLabel = ({ htmlFor, label, info }) => (
 );
 
 // Slider with a matching number box.
-const RangeField = ({ label, info, ariaLabel, min, max, value, onChange }) => {
+export const RangeField = ({ label, info, ariaLabel, min, max, value, onChange }) => {
   const id = useId();
   const clamp = (v) => Math.min(max, Math.max(min, v));
 

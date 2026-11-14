@@ -1,7 +1,6 @@
 import { useId } from "react";
 import {
   ALTITUDE_RANGE_KM,
-  MARS_ROUND_TRIP_DELTA_V,
   ORBIT_ALTITUDE_KM,
   ORBIT_DELTA_V,
   PAYLOAD_MASS,
@@ -73,7 +72,7 @@ const StageStats = ({ number, altitude, stats, onAltitudeChange }) => {
       <dl className="rocket-stats__grid">
         <Stat label="Δv" info="deltaV" value={format(stats.deltaV)} unit="m/s" />
         <Stat label="Isp at altitude" info="isp" value={format(stats.isp)} unit="s" />
-        <Stat label="Thrust-to-weight" info="thrustToWeight" value={format(stats.thrustToWeight, 2)} unit="" />
+        <Stat label="Burn time" info="burnTime" value={format(stats.burnTime)} unit="s" />
         <Stat
           label="Wet / dry mass"
           info="mass"
@@ -85,6 +84,29 @@ const StageStats = ({ number, altitude, stats, onAltitudeChange }) => {
     </section>
   );
 };
+
+// The boosters fire from the pad, so they have no altitude setting.
+const SrbStats = ({ stats }) => (
+  <section className="rocket-stats__stage" aria-label="Solid rocket booster statistics">
+    <div className="rocket-stats__label-row">
+      <h3 className="rocket-stats__stage-title">SRBs</h3>
+      <Info topic="srbs" />
+    </div>
+
+    <dl className="rocket-stats__grid">
+      <Stat label="Δv" info="deltaV" value={format(stats.deltaV)} unit="m/s" />
+      <Stat label="Average Isp" info="isp" value={format(stats.isp)} unit="s" />
+      <Stat label="Burn time" info="burnTime" value={format(stats.burnTime)} unit="s" />
+      <Stat
+        label="Wet / dry mass"
+        info="mass"
+        value={`${format(stats.wetMass, 1)} / ${format(stats.dryMass, 1)}`}
+        unit="t"
+      />
+      <Stat label="Cost" info="cost" value={money(stats.cost)} unit="" />
+    </dl>
+  </section>
+);
 
 const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) => {
   // Only the budget is a hard requirement; the Δv meters are guidance for the designer.
@@ -99,6 +121,12 @@ const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) =>
       <dl className="rocket-stats__grid rocket-stats__totals">
         <Stat label="Total Δv" info="totalDeltaV" value={format(stats.totalDeltaV)} unit="m/s" />
         <Stat label="Liftoff mass" info="liftoffMass" value={format(stats.liftoffMass, 1)} unit="t" />
+        <Stat
+          label="Liftoff thrust-to-weight"
+          info="liftoffThrustToWeight"
+          value={format(stats.liftoffThrustToWeight, 2)}
+          unit=""
+        />
         <Stat label="Payload" info="payload" value={format(PAYLOAD_MASS)} unit="t" />
       </dl>
 
@@ -107,22 +135,13 @@ const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) =>
           Low Earth orbit ({ORBIT_ALTITUDE_KM} km) needs about {format(ORBIT_DELTA_V)} m/s
         </div>
         <Meter label="Total delta-v compared with orbit" value={stats.totalDeltaV} max={ORBIT_DELTA_V} />
-      </div>
-
-      <div className="rocket-stats__orbit">
-        <div className="rocket-stats__label-row">
-          <div className="rocket-stats__label">
-            Mars orbit round trip needs about {format(MARS_ROUND_TRIP_DELTA_V)} m/s
-          </div>
-          <Info topic="marsRoundTrip" />
-        </div>
-        <Meter
-          label="Total delta-v compared with a round trip to Mars orbit"
-          value={stats.totalDeltaV}
-          max={MARS_ROUND_TRIP_DELTA_V}
-        />
         <p className="rocket-stats__note">
-          These are estimates of the minimum Δv required; a real rocket may need more.
+          This is an estimate of the minimum Δv required; a real rocket may need more.
+        </p>
+        <p className="rocket-stats__note">
+          The spacecraft refuels at a station in orbit before heading to Mars, so the rocket
+          only needs to reach orbit.
+          <Info topic="refuelingStation" />
         </p>
       </div>
 
@@ -154,6 +173,8 @@ const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) =>
           />
         );
       })}
+
+      {stats.srbs && <SrbStats stats={stats.srbs} />}
 
       <div className="rocket-stats__continue">
         {/* aria-disabled rather than disabled, so the button can still be hovered and

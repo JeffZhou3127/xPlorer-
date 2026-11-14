@@ -1,4 +1,5 @@
 import StageCard from "../StageCard/StageCard.jsx";
+import SrbCard from "../SrbCard/SrbCard.jsx";
 import "./RocketForm.css";
 
 const RocketForm = ({
@@ -9,6 +10,12 @@ const RocketForm = ({
   onAddStage,
   onRemoveStage,
   onStageChange,
+  srbs,
+  canAddSrbs,
+  srbFuelRange,
+  onAddSrbs,
+  onRemoveSrbs,
+  onSrbsChange,
 }) => {
   const canAdd = stages.length < maxStages;
   const canRemove = stages.length > 1;
@@ -49,6 +56,21 @@ const RocketForm = ({
       >
         {canAdd ? "+ Add Stage" : "Max stages reached"}
       </button>
+
+      {srbs && (
+        <SrbCard
+          srbs={srbs}
+          minFuel={srbFuelRange.min}
+          maxFuel={srbFuelRange.max}
+          onChange={onSrbsChange}
+          onRemove={onRemoveSrbs}
+        />
+      )}
+      {!srbs && canAddSrbs && (
+        <button type="button" className="rocket-form__add" onClick={onAddSrbs}>
+          + Add SRBs
+        </button>
+      )}
     </form>
   );
 };

@@ -36,17 +36,17 @@ export const GLOSSARY = {
     term: "Total Δv",
     text: "The Δv of all stages added together. To stay in a circular orbit 300 km up you need about 7.7 km/s of sideways speed (v = √(GM ÷ r)). A real launch also loses speed fighting gravity and air drag on the way up, so it needs more than that.",
   },
-  marsRoundTrip: {
-    term: "Mars orbit round trip",
-    text: "Δv to fly from Earth's surface to orbit around Mars and back, without landing: about 7.7 km/s to reach a 300 km Earth orbit, 3.6 to head for Mars, 2.1 to slow into Mars orbit, and 2.1 to leave for home. The atmosphere does the braking when you get back to Earth.",
+  refuelingStation: {
+    term: "Refueling station",
+    text: "Flying to Mars orbit and back takes about 7.8 km/s more after reaching Earth orbit, far more than one rocket can carry from the ground. Instead, the spacecraft docks with a fuel depot in orbit and fills its tanks there, so your rocket only has to get it to orbit.",
   },
   isp: {
     term: "Specific impulse (Isp)",
     text: "How efficiently an engine uses propellant, measured in seconds: how long one kilogram of propellant could produce one kilogram-force of thrust. Higher is better, like a car's fuel economy.",
   },
-  thrustToWeight: {
-    term: "Thrust-to-weight ratio",
-    text: "Engine thrust divided by the stage's weight at ignition. A booster needs more than 1 to lift off at all, and about 1.2 or more to climb well. Upper stages can be below 1 because they are already flying fast.",
+  burnTime: {
+    term: "Burn time",
+    text: "How long the stage can fire with every engine at full throttle before its tanks run dry. More propellant burns longer; more engines, or engines with higher chamber pressure, empty the tanks faster.",
   },
   mass: {
     term: "Wet / dry mass",
@@ -63,6 +63,18 @@ export const GLOSSARY = {
   budget: {
     term: "Budget",
     text: "The money available for this mission. Real rocket design is always a trade-off: the most efficient engines and fuels are also the most expensive, so you have to reach orbit without overspending.",
+  },
+  srbs: {
+    term: "Solid rocket boosters",
+    text: "A pair of solid-fuel boosters strapped to the sides of Stage 1. They fire together with it at liftoff, adding lots of cheap thrust, then drop away once empty. Solid fuel is less efficient than liquid fuel, and once lit it cannot be throttled or shut off.",
+  },
+  srbFuel: {
+    term: "SRB fuel amount",
+    text: "The combined propellant in both boosters. More fuel makes the boosters taller and gives more thrust and Δv, but adds weight and cost. The boosters can be no taller than the stages below the top stage, so bigger lower stages allow more SRB fuel.",
+  },
+  liftoffThrustToWeight: {
+    term: "Liftoff thrust-to-weight",
+    text: "The thrust of Stage 1 at sea level (plus the boosters, if fitted), divided by the weight of the whole rocket on the pad. It needs to be above 1 to lift off at all, and about 1.2 or more to climb well.",
   },
   payload: {
     term: "Payload",

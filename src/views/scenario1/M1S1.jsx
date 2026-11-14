@@ -3,6 +3,7 @@ import ThreePane from "../../components/ThreePane/ThreePane.jsx";
 import RocketStats from "../../components/RocketStats/RocketStats.jsx";
 import RocketDiagram from "../../components/RocketDiagram/RocketDiagram.jsx";
 import RocketForm from "../../components/RocketForm/RocketForm.jsx";
+import { maxSrbFuel } from "../../components/RocketDiagram/rocketLayout.js";
 import { computeRocketStats } from "../../utils/rocketPhysics.js";
 
 // Fuel ranges in tonnes, by position counted from the top stage down.
@@ -21,6 +22,13 @@ const ENGINE_RANGES = [
   { min: 1, max: 5 },
   { min: 1, max: 3 },
 ];
+
+// Total propellant across the strap-on solid rocket boosters, in tonnes. There is no fixed
+// maximum: the boosters may be no taller than the stages below the top stage (maxSrbFuel).
+const MIN_SRB_FUEL = 5;
+const DEFAULT_SRB_FUEL = 40;
+// SRBs strap onto a wide booster stage, so the rocket needs one beneath an upper stage.
+const MIN_STAGES_FOR_SRBS = 2;
 
 // Placeholder mission budget in millions of dollars.
 const BUDGET = 60;
@@ -66,7 +74,14 @@ const createStage = (positionFromTop) => {
 
 const M1S1 = () => {
   const [stages, setStages] = useState(() => [createStage(0)]);
-  const stats = computeRocketStats(stages);
+  // null until the user adds SRBs.
+  const [storedSrbs, setSrbs] = useState(null);
+  // Shrinking the lower stages lowers the SRB height limit, so cap the stored fuel to it.
+  // (The minimum is enforced by the input itself, so typing a partial number still works.)
+  const srbFuelRange = { max: maxSrbFuel(stages) };
+  srbFuelRange.min = Math.min(MIN_SRB_FUEL, srbFuelRange.max);
+  const srbs = storedSrbs && { ...storedSrbs, fuel: Math.min(storedSrbs.fuel, srbFuelRange.max) };
+  const stats = computeRocketStats(stages, srbs);
 
   // New stages go underneath as the new booster; the stages above are pushed up a position,
   // which can lower their engine limit. Stages lifted off the pad get a default altitude
@@ -84,10 +99,13 @@ const M1S1 = () => {
     );
 
   // Removing a stage moves the ones below it up into a smaller fuel range, so re-fit every stage.
-  const removeStage = (id) =>
+  // SRBs are dropped too if the rocket falls below the stage count they need.
+  const removeStage = (id) => {
+    if (stages.length - 1 < MIN_STAGES_FOR_SRBS) setSrbs(null);
     setStages((current) =>
       current.length <= 1 ? current : fitToPositions(current.filter((stage) => stage.id !== id)),
     );
+  };
 
   const updateStage = (id, patch) =>
     setStages((current) =>
@@ -105,9 +123,15 @@ const M1S1 = () => {
           onAddStage={addStage}
           onRemoveStage={removeStage}
           onStageChange={updateStage}
+          srbs={srbs}
+          canAddSrbs={stages.length >= MIN_STAGES_FOR_SRBS}
+          srbFuelRange={srbFuelRange}
+          onAddSrbs={() => setSrbs({ fuel: Math.min(DEFAULT_SRB_FUEL, srbFuelRange.max) })}
+          onRemoveSrbs={() => setSrbs(null)}
+          onSrbsChange={(patch) => setSrbs({ ...srbs, ...patch })}
         />
       }
-      center={<RocketDiagram stages={stages} />}
+      center={<RocketDiagram stages={stages} srbs={srbs} />}
       right={
         <RocketStats
           stages={stages}

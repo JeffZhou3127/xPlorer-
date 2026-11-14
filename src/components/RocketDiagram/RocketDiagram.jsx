@@ -1,44 +1,26 @@
-import { PROPELLANTS } from "../../utils/rocketPhysics.js";
+import {
+  ENGINE_SECTION_HEIGHT,
+  GROUND_Y,
+  NARROW_HALF,
+  SRB_HALF,
+  SRB_NOSE_HEIGHT,
+  SRB_NOZZLE,
+  SRB_SKIRT_HEIGHT,
+  THROAT_HALF,
+  interstageHeight,
+  layoutStages,
+  srbBodyHeight,
+} from "./rocketLayout.js";
 import "./RocketDiagram.css";
 
 // Minimal blueprint-style rocket outline. All units are SVG user units.
+// Sizes that decide where things sit (stage and booster heights) live in rocketLayout.js.
 const VIEW_WIDTH = 300;
 const VIEW_HEIGHT = 900;
-const GROUND_Y = 860;
 const CX = 150; // rocket centerline
 
-// Body widths. The top stage matches the spacecraft fairing; lower stages are wider.
-const NARROW_HALF = 30;
-const WIDE_HALF = 42;
-
-// Tank length is propellant volume (mass ÷ density) divided by cross-section area,
-// so tank size is proportional to volume: low-density hydrogen needs much longer tanks
-// than kerosene for the same mass, and a narrow tank grows faster than a wide one.
-const UNITS_PER_M3_WIDE = 0.74; // tank length per m³ of propellant in a wide stage
-const tankHeight = (fuel, propellant, half) =>
-  (fuel / PROPELLANTS[propellant].density) * UNITS_PER_M3_WIDE * (WIDE_HALF / half) ** 2;
-
-// Bottom stage engine section
-const ENGINE_SECTION_HEIGHT = 20;
-const ENGINE_FLARE = 4;
-
-// Upper stage interstage (hides the upper stage engines). It grows to fit long nozzles.
-const MIN_INTERSTAGE_HEIGHT = 34;
-const INTERSTAGE_CLEARANCE = 6;
-
-// Engine nozzles. Every engine has the same throat, so the exit radius scales with
-// sqrt(expansion ratio), and a bell gets longer as it gets wider.
-const THROAT_HALF = 2.75;
+const ENGINE_FLARE = 4; // bottom stage engine section flare
 const CHAMBER_HALF = 5;
-const NOZZLE_BASE_HEIGHT = 6;
-const NOZZLE_LENGTH_PER_WIDTH = 2;
-const nozzleSize = (expansionRatio) => {
-  const exitHalf = THROAT_HALF * Math.sqrt(expansionRatio);
-  return { exitHalf, height: NOZZLE_BASE_HEIGHT + NOZZLE_LENGTH_PER_WIDTH * (exitHalf - THROAT_HALF) };
-};
-
-const interstageHeight = (nozzle) =>
-  Math.max(MIN_INTERSTAGE_HEIGHT, nozzle.height + INTERSTAGE_CLEARANCE);
 
 // Engine positions seen from below, projected to the side view: `x` across the
 // diagram and `z` toward the viewer. One engine sits in the middle; up to five form a
@@ -177,31 +159,52 @@ const Spacecraft = ({ base, half }) => {
   );
 };
 
-const RocketDiagram = ({ stages }) => {
-  // Lay out stages from the ground up; stages[0] is the bottom stage.
-  // The top stage matches the fairing width; every stage below it is wide.
+// Solid rocket booster drawing extras.
+const SRB_GAP = 6; // space between a booster and the core stage
+const SRB_SKIRT_FLARE = 3;
+
+const Srb = ({ cx, bodyH, coreEdgeX }) => {
+  const skirtBottom = GROUND_Y - SRB_NOZZLE.height;
+  const skirtTop = skirtBottom - SRB_SKIRT_HEIGHT;
+  const bodyTop = skirtTop - bodyH;
+  const noseTip = bodyTop - SRB_NOSE_HEIGHT;
+  // Inner edge of the booster, facing the core.
+  const innerX = cx + Math.sign(coreEdgeX - cx) * SRB_HALF;
+
+  return (
+    <g>
+      <path className="rd-engine" d={bellPath(cx, skirtBottom, SRB_NOZZLE.height, SRB_NOZZLE.mountHalf, SRB_NOZZLE.throatHalf, SRB_NOZZLE.exitHalf)} />
+      <path
+        className="rd-outline"
+        d={`M ${cx - SRB_HALF} ${skirtTop} L ${cx + SRB_HALF} ${skirtTop}
+            L ${cx + SRB_HALF + SRB_SKIRT_FLARE} ${skirtBottom} L ${cx - SRB_HALF - SRB_SKIRT_FLARE} ${skirtBottom} Z`}
+      />
+      <rect className="rd-outline" x={cx - SRB_HALF} y={bodyTop} width={SRB_HALF * 2} height={bodyH} />
+      <path
+        className="rd-outline"
+        d={`M ${cx - SRB_HALF} ${bodyTop}
+            Q ${cx - SRB_HALF} ${noseTip + SRB_NOSE_HEIGHT * 0.3} ${cx} ${noseTip}
+            Q ${cx + SRB_HALF} ${noseTip + SRB_NOSE_HEIGHT * 0.3} ${cx + SRB_HALF} ${bodyTop} Z`}
+      />
+      {/* Attachment struts to the core stage, near the bottom and top of the case. */}
+      <line className="rd-outline" x1={innerX} x2={coreEdgeX} y1={skirtTop - 6} y2={skirtTop - 6} />
+      <line className="rd-outline" x1={innerX} x2={coreEdgeX} y1={bodyTop + 6} y2={bodyTop + 6} />
+    </g>
+  );
+};
+
+const RocketDiagram = ({ stages, srbs }) => {
   const count = stages.length;
-  const placed = [];
-  let stackTop = GROUND_Y;
-  for (const [index, stage] of stages.entries()) {
-    const half = index === count - 1 ? NARROW_HALF : WIDE_HALF;
-    const tankH = tankHeight(stage.fuel, stage.propellant, half);
-    const nozzle = nozzleSize(stage.expansionRatio);
-    const below = index === 0 ? ENGINE_SECTION_HEIGHT + nozzle.height : interstageHeight(nozzle);
-    const tankTop = stackTop - below - tankH;
-    placed.push({
-      id: stage.id,
-      isFirst: index === 0,
-      half,
-      belowHalf: placed.at(-1)?.half,
-      tankTop,
-      tankH,
-      engines: stage.engines,
-      nozzle,
-    });
-    stackTop = tankTop;
-  }
-  const overallTop = stackTop - SPACECRAFT_HEIGHT;
+  const { placed, stackTop } = layoutStages(stages);
+  const srbBodyH = srbs ? srbBodyHeight(srbs.fuel) : 0;
+  // Keep the boosters clear of Stage 1's engine section and its widest nozzles.
+  const core = placed[0];
+  const coreExtent = Math.max(
+    core.half + ENGINE_FLARE,
+    ...clusterLayout(core.engines, core.half).map(({ x }) => Math.abs(x) + core.nozzle.exitHalf),
+  );
+  const srbTop = GROUND_Y - SRB_NOZZLE.height - SRB_SKIRT_HEIGHT - srbBodyH - SRB_NOSE_HEIGHT;
+  const overallTop = Math.min(stackTop - SPACECRAFT_HEIGHT, srbs ? srbTop : Infinity);
 
   // Extend the view upward when a tall rocket would not fit.
   const viewTop = Math.min(0, overallTop - 30);
@@ -212,7 +215,7 @@ const RocketDiagram = ({ stages }) => {
       className="rocket-diagram"
       viewBox={`0 ${viewTop} ${VIEW_WIDTH} ${viewHeight}`}
       role="img"
-      aria-label={`Blueprint outline of a ${count}-stage rocket`}
+      aria-label={`Blueprint outline of a ${count}-stage rocket${srbs ? " with two solid rocket boosters" : ""}`}
     >
       <defs>
         <pattern id="rd-grid-minor" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -252,6 +255,16 @@ const RocketDiagram = ({ stages }) => {
       )}
 
       <Spacecraft base={stackTop} half={NARROW_HALF} />
+
+      {srbs &&
+        [-1, 1].map((side) => (
+          <Srb
+            key={side}
+            cx={CX + side * (coreExtent + SRB_GAP + SRB_HALF + SRB_SKIRT_FLARE)}
+            bodyH={srbBodyH}
+            coreEdgeX={CX + side * core.half}
+          />
+        ))}
 
       <line className="rd-outline" x1={30} x2={VIEW_WIDTH - 30} y1={GROUND_Y} y2={GROUND_Y} />
     </svg>

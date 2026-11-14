@@ -15,11 +15,6 @@ const EARTH_RADIUS = 6371e3; // m
 export const ORBIT_ALTITUDE_KM = 300;
 export const ORBIT_DELTA_V = Math.sqrt(EARTH_GM / (EARTH_RADIUS + ORBIT_ALTITUDE_KM * 1000));
 
-// Minimum delta-v for a round trip to Mars orbit (no landing), starting from Earth's surface:
-// reach LEO (above), trans-Mars injection (~3.6 km/s), capture into low Mars orbit (~2.1),
-// trans-Earth injection (~2.1), then aerobrake in Earth's atmosphere on return (~0).
-export const MARS_ROUND_TRIP_DELTA_V = ORBIT_DELTA_V + 3600 + 2100 + 2100;
-
 // Characteristic velocity (c*), ratio of specific heats of the exhaust,
 // average bulk density of the propellant load (t/m³), propellant price ($M per tonne)
 // and a tank cost multiplier (cryogenic hydrogen needs insulated, more expensive tanks).
@@ -158,6 +153,15 @@ export const stageThrust = (stage, altitudeKm) => {
   return stage.engines * ENGINE_CYCLES[stage.cycle].chamberPressure * THROAT_AREA * cf * efficiency;
 };
 
+// Seconds to empty the tanks with every engine at full throttle. Propellant flow through
+// a throat (chamber pressure × throat area ÷ c*) does not depend on altitude.
+export const stageBurnTime = (stage) => {
+  const massFlow =
+    (stage.engines * ENGINE_CYCLES[stage.cycle].chamberPressure * THROAT_AREA) /
+    PROPELLANTS[stage.propellant].cStar;
+  return (stage.fuel * 1000) / massFlow;
+};
+
 // Costs are in millions of dollars (placeholder figures for the game).
 const TANK_COST_PER_M3 = 0.02;
 const STAGE_HARDWARE_COST = 2; // avionics, plumbing, interstage
@@ -188,9 +192,39 @@ export const dryMass = (stage) =>
   stage.engines * ENGINE_MASS +
   STAGE_HARDWARE_MASS;
 
+// Strap-on solid rocket boosters (a pair; `fuel` is their combined propellant).
+// Solid propellant is dense, cheap and simple, but less efficient than liquid engines.
+export const SRB_DENSITY = 1.8; // t/m³
+const SRB_ISP = 250; // averaged over the climb from sea level, s
+const SRB_BURN_TIME = 100; // s
+const SRB_CASING_FRACTION = 0.12; // steel casing and nozzle, as a share of propellant mass
+const SRB_HARDWARE_MASS = 1; // attachment struts and separation hardware, t
+const SRB_COST_PER_TONNE = 0.03;
+const SRB_HARDWARE_COST = 1.5;
+
+// The boosters fire from the pad alongside Stage 1 and are dropped once empty.
+// For Δv they are treated as their own phase that carries the whole fuelled stack.
+const computeSrbStats = (srbs, stackMass) => {
+  const dry = srbs.fuel * SRB_CASING_FRACTION + SRB_HARDWARE_MASS;
+  const startMass = stackMass + dry + srbs.fuel;
+  const thrust = ((srbs.fuel * 1000) / SRB_BURN_TIME) * SRB_ISP * G0;
+
+  return {
+    cost: srbs.fuel * SRB_COST_PER_TONNE + SRB_HARDWARE_COST,
+    isp: SRB_ISP,
+    thrust,
+    burnTime: SRB_BURN_TIME,
+    dryMass: dry,
+    wetMass: dry + srbs.fuel,
+    startMass,
+    deltaV: SRB_ISP * G0 * Math.log(startMass / (stackMass + dry)),
+  };
+};
+
 // Per-stage performance; `stages` is ordered from the bottom stage up.
 // Each stage pushes everything above it, so mass is accumulated from the top down.
-export const computeRocketStats = (stages) => {
+// `srbs` is optional ({ fuel }) and adds a booster phase below Stage 1.
+export const computeRocketStats = (stages, srbs = null) => {
   const results = Array.from({ length: stages.length });
   let massAbove = PAYLOAD_MASS;
   let totalDeltaV = 0;
@@ -211,8 +245,7 @@ export const computeRocketStats = (stages) => {
       id: stage.id,
       isp,
       thrust,
-      // Measured at ignition, when the stage is heaviest; masses are in tonnes.
-      thrustToWeight: thrust / (startMass * 1000 * G0),
+      burnTime: stageBurnTime(stage),
       dryMass: dry,
       wetMass: dry + stage.fuel,
       startMass,
@@ -223,5 +256,24 @@ export const computeRocketStats = (stages) => {
     totalCost += cost;
   }
 
-  return { stages: results, totalDeltaV, totalCost, liftoffMass: massAbove };
+  let srbStats = null;
+  if (srbs) {
+    srbStats = computeSrbStats(srbs, massAbove);
+    massAbove = srbStats.startMass;
+    totalDeltaV += srbStats.deltaV;
+    totalCost += srbStats.cost;
+  }
+
+  // Stage 1 at sea level plus any boosters lift the whole fuelled rocket off the pad.
+  const liftoffThrust = stageThrust(stages[0], 0) + (srbStats?.thrust ?? 0);
+  const liftoffThrustToWeight = liftoffThrust / (massAbove * 1000 * G0);
+
+  return {
+    stages: results,
+    srbs: srbStats,
+    totalDeltaV,
+    totalCost,
+    liftoffMass: massAbove,
+    liftoffThrustToWeight,
+  };
 };

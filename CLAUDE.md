@@ -15,15 +15,17 @@ xPlorer+ is an early-stage React app (Vite template with the default demo conten
 - **Right, `RocketStats`**:
   - Totals: total Δv, liftoff mass and payload.
   - Meters:
-    - Low Earth orbit (`ORBIT_DELTA_V`).
-    - Mars orbit round trip (`MARS_ROUND_TRIP_DELTA_V`), followed by an italic note that both are minimum estimates.
+    - Low Earth orbit (`ORBIT_DELTA_V`), followed by an italic note that it is a minimum estimate and a note that the spacecraft refuels at an orbital station before going to Mars, so reaching orbit is the only Δv goal (there is no Mars Δv meter).
     - Cost against budget, which turns red when over.
-  - Each stage has an altitude slider (0–110 km) and shows Δv, Isp at that altitude, thrust-to-weight ratio, wet/dry mass and cost.
+  - Each stage has an altitude slider (0–110 km) and shows Δv, Isp at that altitude, full-throttle burn time, wet/dry mass and cost.
 - **Continue button**:
   - It depends **only on the budget** (`BUDGET` in `M1S1.jsx`, $60M placeholder). The Δv meters are guidance only.
   - When over budget it uses `aria-disabled` instead of `disabled`, so it can still be hovered or focused to show a tooltip with the reason.
   - `onContinue` is a TODO no-op until the next mission step exists.
 - **"?" tooltips**: `InfoTip` (`src/components/InfoTip/`) is a small help button whose bubble is portalled to `document.body`, because the side panes scroll and would clip it. The explanatory text lives in `src/utils/glossary.js` (`GLOSSARY[key] = { term, text }`) and is referenced by key.
+
+- **SRBs**: an optional pair of solid rocket boosters, held as `srbs` state in `M1S1.jsx` (`null` or `{ fuel }`, the combined propellant). The "+ Add SRBs" button shows only with at least `MIN_STAGES_FOR_SRBS` (2) stages, and removing a stage below that clears them. `SrbCard` has only a fuel input. The diagram draws one booster on each side of Stage 1, with height following propellant volume (`SRB_DENSITY`). The boosters may be no taller than the stages below the top stage, so the fuel maximum is `maxSrbFuel(stages)` from `components/RocketDiagram/rocketLayout.js` (diagram geometry shared with `RocketDiagram`); `M1S1` caps the stored fuel to it at render time. In the physics they are a separate first phase that lifts the whole fuelled stack and is then dropped (fixed average Isp, burn time and casing fraction), adding to Δv, liftoff mass and cost. `RocketStats` shows an SRBs section.
+- **Stats**: the only thrust-to-weight is the liftoff one in the totals (Stage 1 sea-level thrust plus SRB thrust over the whole rocket's weight). Each stage shows a full-throttle burn time (`stageBurnTime`).
 
 Stage conventions:
 
@@ -42,7 +44,7 @@ Stage conventions:
 - **Thrust-to-weight**: measured at stage ignition.
 - **Δv**: from the rocket equation, with mass accumulated from the top down on top of a 12 t payload.
 - **Dry mass**: tank mass scaled by propellant density, plus 1 t per engine, plus 1 t per stage.
-- **Orbit targets**: `ORBIT_DELTA_V` is the circular orbital velocity √(GM/r) at `ORBIT_ALTITUDE_KM` (300 km), about 7,730 m/s. It leaves out gravity and drag losses. `MARS_ROUND_TRIP_DELTA_V` adds trans-Mars injection (3.6 km/s), Mars capture (2.1) and trans-Earth injection (2.1), and assumes the return is aerobraked.
+- **Orbit targets**: `ORBIT_DELTA_V` is the circular orbital velocity √(GM/r) at `ORBIT_ALTITUDE_KM` (300 km), about 7,730 m/s. It leaves out gravity and drag losses. The trip on to Mars is fuelled by an orbital refueling station, so the rocket isn't measured against it.
 - **Cost** (`stageCost`, in $M; every figure is a placeholder):
   - Engines: each costs a per-cycle price (`ENGINE_CYCLES[].engineCost`), multiplied by the gas-generator `costFactor` (closed is pricier) and by 1% extra per unit of expansion ratio.
   - Tanks: cost per m³ of propellant, scaled by the propellant's `tankCostFactor` (hydrolox is highest).
