@@ -1,0 +1,13 @@
+.mission-objective {
+  padding: 1rem;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+}
+
+.mission-objective__name {
+  margin: 0 0 0.5rem;
+}
+
+.mission-objective__description {
+  margin: 0;
+}
