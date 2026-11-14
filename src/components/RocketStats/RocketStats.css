@@ -122,6 +122,8 @@
   position: relative;
   display: flex;
   justify-content: flex-end;
+  /* Room below the button so the deployed site's branding badge doesn't cover it. */
+  padding-bottom: 4rem;
 }
 
 /* Reason the Continue button is unavailable, shown above it on hover or focus. */
