@@ -1,13 +1,97 @@
 .mission-objective {
-  padding: 1rem;
-  border: 1px solid currentColor;
-  border-radius: 8px;
+  --mo-accent: #00e5ff;
+  --mo-text: #e6edf3;
+
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  animation: mission-objective-fade-in 0.8s ease-out both;
+}
+
+.mission-objective__name,
+.mission-objective__description {
+  max-width: 40rem;
 }
 
 .mission-objective__name {
-  margin: 0 0 0.5rem;
+  margin: 0 0 1.5rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--mo-accent);
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.35);
+}
+
+.mission-objective__name::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 1px;
+  margin: 1.5rem auto 0;
+  background: var(--mo-accent);
+  box-shadow: 0 0 8px var(--mo-accent);
 }
 
 .mission-objective__description {
   margin: 0;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--mo-text);
+}
+
+.mission-objective__start {
+  margin-top: 3rem;
+  padding: 0.85rem 2.25rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--mo-accent);
+  background: transparent;
+  border: 1px solid var(--mo-accent);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mission-objective__start:hover,
+.mission-objective__start:focus-visible {
+  color: #000;
+  background: var(--mo-accent);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.6);
+}
+
+.mission-objective__start:focus-visible {
+  outline: 1px solid var(--mo-accent);
+  outline-offset: 4px;
+}
+
+@keyframes mission-objective-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-objective {
+    animation: none;
+  }
 }
