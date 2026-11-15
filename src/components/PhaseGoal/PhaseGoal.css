@@ -18,6 +18,18 @@
   background: rgba(63, 185, 80, 0.06);
 }
 
+.phase-goal--failed {
+  --pg-accent: #ff6b6b;
+
+  border-color: rgba(255, 107, 107, 0.55);
+  background: rgba(255, 107, 107, 0.06);
+}
+
+.phase-goal--failed .phase-goal__status {
+  font-style: normal;
+  color: var(--pg-accent);
+}
+
 .phase-goal__title {
   margin: 0;
   font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;

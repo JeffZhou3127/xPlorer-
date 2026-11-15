@@ -44,10 +44,11 @@ const GoalMeter = ({ label, value, valueText, target, unit }) => {
 // bar per entry in `meters` ([{ label, value, valueText, target }], see GoalMeter, all in
 // `unit`), a note, and, once `reached`, a green outline, `reachedText` and an optional
 // `action` button ({ label, onClick }) for the next goal. `step`/`steps` number the goals
-// ("Goal 1 of 2").
-const PhaseGoal = ({ step, steps, goal, meters, unit, note, reached, reachedText, action }) => (
+// ("Goal 1 of 2"). `failed` instead turns the card red with `failedText` and shows the
+// `action` (e.g. a retry).
+const PhaseGoal = ({ step, steps, goal, meters, unit, note, reached, reachedText, failed, failedText, action }) => (
   <section
-    className={`phase-goal ${reached ? "phase-goal--reached" : ""}`}
+    className={`phase-goal ${reached ? "phase-goal--reached" : ""} ${failed ? "phase-goal--failed" : ""}`}
     aria-labelledby="phase-goal-title"
   >
     <h3 id="phase-goal-title" className="phase-goal__title">
@@ -60,10 +61,10 @@ const PhaseGoal = ({ step, steps, goal, meters, unit, note, reached, reachedText
     ))}
 
     <p className="phase-goal__status" role="status">
-      {reached ? reachedText : note}
+      {failed ? failedText : reached ? reachedText : note}
     </p>
 
-    {reached && action && (
+    {(reached || failed) && action && (
       <button type="button" className="phase-goal__action" onClick={action.onClick}>
         {action.label}
       </button>

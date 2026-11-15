@@ -1,0 +1,177 @@
+/* Fills the rest of the right pane, like .flight-view. */
+.docking-view {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 20rem;
+}
+
+.docking-view__screen {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+.docking-view__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.docking-view__svg * {
+  vector-effect: non-scaling-stroke;
+}
+
+.dv-bg {
+  fill: #000;
+}
+
+.dv-star {
+  fill: #c9d1d9;
+  opacity: 0.7;
+}
+
+/* Blueprint lines, as in the rocket diagram. */
+.dv-line {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1;
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+
+.dv-line--panel {
+  opacity: 0.45;
+}
+
+.dv-line--collar {
+  stroke: #00e5ff;
+  stroke-width: 1.5;
+  opacity: 1;
+}
+
+.dv-line--hatch {
+  stroke: #00e5ff;
+  opacity: 0.6;
+}
+
+.dv-line--target {
+  stroke: #ffb840;
+  stroke-width: 2;
+  opacity: 1;
+}
+
+.dv-reticle {
+  fill: none;
+  stroke: #3fb950;
+  stroke-width: 1;
+  opacity: 0.85;
+}
+
+/* HUD readouts over the camera image. */
+.docking-view__hud {
+  position: absolute;
+  display: flex;
+  gap: 1.25rem;
+  padding: 0.75rem 1rem;
+  pointer-events: none;
+}
+
+.docking-view__hud--top {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.docking-view__hud--bottom {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.docking-view__hud--left {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.docking-view__readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 5.5rem;
+}
+
+.docking-view__hud--left .docking-view__readout {
+  align-items: flex-start;
+}
+
+.docking-view__readout-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+
+.docking-view__readout-value {
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #00e5ff;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
+}
+
+.docking-view__readout-unit {
+  font-size: 0.7rem;
+  color: #8b949e;
+  text-shadow: none;
+}
+
+.docking-view__readout--ok .docking-view__readout-value {
+  color: #3fb950;
+  text-shadow: 0 0 6px rgba(63, 185, 80, 0.4);
+}
+
+.docking-view__angle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.docking-view__rate {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: #8b949e;
+}
+
+.docking-view__banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  padding: 0.6rem 1.5rem;
+  transform: translate(-50%, 160%);
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.docking-view__banner--docked {
+  color: #3fb950;
+  border: 1px solid rgba(63, 185, 80, 0.65);
+}
+
+.docking-view__banner--failed {
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.65);
+}

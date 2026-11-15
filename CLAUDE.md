@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`) and mission failure (`/mission-failure`, reached only from the flight panel). Each step's Continue leads to the next.
+xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`), orbit reached (`/m1-s5`, from goal 2's Continue; sets up docking), docking (`/m1-s6`, see below), refueling (`/m1-s7`, placeholder, from the docked Continue) and mission failure (`/mission-failure`, reached only from the flight panel). Each step's Continue leads to the next.
 
 ## Commands
 
@@ -75,7 +75,7 @@ Stage conventions:
 
 1. **ascent**: bring the apogee into `TARGET_APOGEE_KM` (290–310 km). Checked live: **Next goal** shows only while in range.
 2. **coast**: Next goal shuts the engines down, resets warp to 1x and runs at `coastWarp` (`coastWarpFor()`, ~10 real seconds). Clock and throttle are locked until the sim sets `coastEndTime` (`timeToApogee` ≤ `COAST_LEAD`, 60 s).
-3. **circularize**: met when the sim sets `orbitGoalTime`: no thrust with both the perigee and the apogee inside 290–310 km (`targetPerigee`, `targetApogee`). Stays met.
+3. **circularize**: met when the sim sets `orbitGoalTime`: no thrust with both the perigee and the apogee inside 290–310 km (`targetPerigee`, `targetApogee`). Stays met; its card then shows **Continue** to `/m1-s5` (`M1S5`, an `OrbitReport` panel).
 
 **Failure** (`flight.failure`, after which `stepFlight` stops): `twr` (launch TWR < 1 at T−0), `crash` (touches ground after lifting off), `fuel` (everything empty and the orbit isn't in the window). M1S4 navigates to `/mission-failure` with `{ failure, targets }`; wording comes from `src/utils/missionFailure.js` (`explainFailure`, `failureSummary`), shown in `FailureReport`.
 
@@ -89,3 +89,11 @@ Stage conventions:
 **`TrajectoryView`**: `x3dom` is a classic global script, injected lazily by `x3domLoader.js` and torn down by `shutdownX3dom`. The scene is built once as markup (`trajectoryScene.js`) and updated with `setAttribute`; React never renders the X3D tags. Units are 1,000 km, flight plane is x–y. The target orbit ring hides once goal 2 is reached.
 
 **Rocket drawing**: `RocketBody.jsx` draws the rocket only (used by `RocketDiagram` and `FlightView`); geometry helpers (`rocketTop`, `maxSrbFuel`, spacecraft heights) live in `rocketLayout.js`.
+
+## Docking (`/m1-s6`)
+
+`M1S6.jsx`, `SplitPane` layout; local state like the flight panel (`useDocking` steps `stepDocking` per frame, warp up to 10x via `MissionClock`). Once docked, the goal card shows Continue to `/m1-s7`.
+
+- **Model** (`src/utils/dockingSim.js`, no React): frame with the depot port at the origin, x right, y up, z toward the spacecraft (distance to close). Starts 100 m out, slightly off-axis and a few degrees out in roll/pitch/yaw. RCS **pulses** add a fixed velocity (in the spacecraft's own axes) or turn rate (`TRANSLATION_STEP`, `ROTATION_STEP`, coarse/fine) and spend RCS Δv from the spacecraft design (`rcsDeltaV`). Contact at z = 0 docks if offset ≤ 0.1 m, speed < 0.2 m/s and every angle ≤ 1° (`DOCKING_TOLERANCE`); otherwise `result.reasons` says why. Drifting past `MAX_RANGE_M` also fails.
+- **Left**: `FlightControls` (title "Docking controls") with `RcsControls` (translate/rotate pads; keys W/A/S/D/Q/E, arrows, Z/X; F toggles precision), a precision `ViewSwitch` and `PhaseGoal` (its `failed` state shows the reasons and Retry); `DockingStats` below.
+- **Right**: `DockingView`, a perspective wireframe from the spacecraft's port camera (depot body, solar panels, port collar, target cross recessed in the collar for parallax), boresight reticle and HUD (X/Y/Z, attitude and rates, range and closing rate; green within tolerance), with an RCS `FuelGauges`.

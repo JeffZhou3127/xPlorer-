@@ -4,10 +4,11 @@ import "./MissionClock.css";
 // Mission clock fixed to the bottom centre of the screen. Under the time, ◀ #x ▶ steps
 // the time warp down or up by 1× between 0 (shown as "Paused") and `maxWarp`; each arrow
 // greys out at its end. `locked` disables both arrows while the warp is being set
-// automatically (e.g. a coast warp that can be above `maxWarp`).
-const MissionClock = ({ time, warp, maxWarp, onWarpChange, locked = false }) => (
+// automatically (e.g. a coast warp that can be above `maxWarp`). `caption` labels the
+// time once it is past zero (before that it reads "Countdown").
+const MissionClock = ({ time, warp, maxWarp, onWarpChange, locked = false, caption = "Mission time" }) => (
   <div className="mission-clock">
-    <span className="mission-clock__caption">{time < 0 ? "Countdown" : "Mission time"}</span>
+    <span className="mission-clock__caption">{time < 0 ? "Countdown" : caption}</span>
     <span className="mission-clock__time" role="timer">
       {formatMissionTime(time)}
     </span>

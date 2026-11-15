@@ -85,7 +85,7 @@ const apogeeMeter = (apogee) => ({
 });
 
 // Props for the PhaseGoal card in each phase.
-const goalCard = (phase, flight, readouts, coastWarp, onNextGoal) => {
+const goalCard = (phase, flight, readouts, coastWarp, onNextGoal, onContinue) => {
   if (phase === "ascent") {
     const { apogee } = readouts;
     const tooHigh = apogee === null || apogee > TARGET_APOGEE_KM.max * 1000;
@@ -133,6 +133,7 @@ const goalCard = (phase, flight, readouts, coastWarp, onNextGoal) => {
     note,
     reached: flight.orbitGoalTime !== null,
     reachedText: `Orbit achieved! Engines shut down with the apogee in ${windowText(TARGET_APOGEE_KM)} and the perigee in ${windowText(TARGET_PERIGEE_KM)}.`,
+    action: { label: "Continue", onClick: onContinue },
   };
 };
 
@@ -277,7 +278,7 @@ const M1S4 = () => {
               />
               <div className="flight-controls__column">
                 <PitchControl rate={pitchRate} maxRate={MAX_PITCH_RATE} onChange={setPitchRate} />
-                <PhaseGoal steps={2} unit="km" {...goalCard(phase, flight, readouts, coastWarp, startCoast)} />
+                <PhaseGoal steps={2} unit="km" {...goalCard(phase, flight, readouts, coastWarp, startCoast, () => navigate("/m1-s5"))} />
               </div>
             </FlightControls>
             <FlightStats
