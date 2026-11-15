@@ -1,0 +1,104 @@
+.refuel-panel {
+  box-sizing: border-box;
+  height: 100vh;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 1.5rem 2rem;
+}
+
+.refuel-panel__title {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #00e5ff;
+}
+
+.refuel-panel__side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 8rem;
+}
+
+.refuel-panel__view {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+.refuel-panel__footer {
+  grid-column: 1 / -1;
+  min-height: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.refuel-panel__status {
+  margin: 0;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: #e6edf3;
+}
+
+/* Same look as OrbitReport's Continue button. */
+.refuel-panel__action {
+  padding: 0.6rem 1.75rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: #0d1117;
+  background: #00e5ff;
+  border: 1px solid #00e5ff;
+  animation: refuel-panel-in 0.4s ease-out both;
+}
+
+.refuel-panel__action:hover,
+.refuel-panel__action:focus-visible {
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.6);
+}
+
+.refuel-panel__action:focus-visible {
+  outline: 1px solid #00e5ff;
+  outline-offset: 4px;
+}
+
+@keyframes refuel-panel-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refuel-panel__action {
+    animation: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .refuel-panel {
+    height: auto;
+    min-height: 100vh;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .refuel-panel__view {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 16rem;
+  }
+}

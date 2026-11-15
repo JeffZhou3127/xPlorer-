@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`), orbit reached (`/m1-s5`, from goal 2's Continue; sets up docking), docking (`/m1-s6`, see below), refueling (`/m1-s7`, placeholder, from the docked Continue) and mission failure (`/mission-failure`, reached only from the flight panel). Each step's Continue leads to the next.
+xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`), orbit reached (`/m1-s5`, from goal 2's Continue; sets up docking), docking (`/m1-s6`, see below), refueling (`/m1-s7`, from the docked Continue; see below), Mars ejection burn (`/m1-s8`, from Undock; see below) and mission failure (`/mission-failure`, reached only from the flight panel). Each step's Continue leads to the next.
 
 ## Commands
 
@@ -26,6 +26,8 @@ xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/s
 - `Meter` (red with `alert`), `Stat`, `Info` from `RocketStats.jsx`; `RangeField`/`SelectField` from `StageCard.jsx`.
 - `src/utils/format.js`: `format`, `money`, `overBudgetReason(cost, budget)`, `formatMissionTime`.
 - `InfoTip`: "?" help button whose bubble is portalled to `document.body` (side panes scroll and would clip it). Text lives in `src/utils/glossary.js` (`GLOSSARY[key] = { term, text }`).
+- Reused across the mission views (optional props keep their original look by default): `FlightControls` (`title`), `MissionClock` (`caption`, e.g. "Docking Time"; `locked`), `PhaseGoal` (`failed`/`failedText`), `FuelGauges` (`title`, per-gauge `detail`).
+- Route state carries the flight's leftover stages (`{ flight: { stageIndex, stageFuel } }`) from M1S4 through M1S5–M1S7 to M1S8; views fall back to "only the top stage left" without it (e.g. opened directly).
 - `StepNav`: fixed Back/Continue bar rendered by each designer view next to its layout (not inside a pane). Buttons show only when `onBack`/`onContinue` is passed; `blockedReason` disables Continue with a tooltip. Buttons are inset 205px from the edges to clear the deployed site's corner badge. `ThreePane` side panes have bottom padding to clear it. `M1S3` (buttons inside `LaunchAlert`) and `M1S4` have no `StepNav`.
 
 ## Spacecraft designer (`/m1-s1`)
@@ -75,7 +77,7 @@ Stage conventions:
 
 1. **ascent**: bring the apogee into `TARGET_APOGEE_KM` (290–310 km). Checked live: **Next goal** shows only while in range.
 2. **coast**: Next goal shuts the engines down, resets warp to 1x and runs at `coastWarp` (`coastWarpFor()`, ~10 real seconds). Clock and throttle are locked until the sim sets `coastEndTime` (`timeToApogee` ≤ `COAST_LEAD`, 60 s).
-3. **circularize**: met when the sim sets `orbitGoalTime`: no thrust with both the perigee and the apogee inside 290–310 km (`targetPerigee`, `targetApogee`). Stays met; its card then shows **Continue** to `/m1-s5` (`M1S5`, an `OrbitReport` panel).
+3. **circularize**: met when the sim sets `orbitGoalTime`: no thrust with both the perigee and the apogee inside 290–310 km (`targetPerigee`, `targetApogee`). Stays met; its card then shows **Continue** to `/m1-s5` (`M1S5`, an `OrbitReport` panel), passing `{ flight: { stageIndex, stageFuel } }` as route state; M1S5, M1S6 and M1S7 forward it on to M1S8.
 
 **Failure** (`flight.failure`, after which `stepFlight` stops): `twr` (launch TWR < 1 at T−0), `crash` (touches ground after lifting off), `fuel` (everything empty and the orbit isn't in the window). M1S4 navigates to `/mission-failure` with `{ failure, targets }`; wording comes from `src/utils/missionFailure.js` (`explainFailure`, `failureSummary`), shown in `FailureReport`.
 
@@ -92,8 +94,18 @@ Stage conventions:
 
 ## Docking (`/m1-s6`)
 
-`M1S6.jsx`, `SplitPane` layout; local state like the flight panel (`useDocking` steps `stepDocking` per frame, warp up to 10x via `MissionClock`). Once docked, the goal card shows Continue to `/m1-s7`.
+`M1S6.jsx`, `SplitPane` layout; local state like the flight panel (`useDocking` steps `stepDocking` per frame, warp up to 10x via `MissionClock`, captioned "Docking Time"). Once docked, the goal card shows Continue to `/m1-s7`.
 
 - **Model** (`src/utils/dockingSim.js`, no React): frame with the depot port at the origin, x right, y up, z toward the spacecraft (distance to close). Starts 100 m out, slightly off-axis and a few degrees out in roll/pitch/yaw. RCS **pulses** add a fixed velocity (in the spacecraft's own axes) or turn rate (`TRANSLATION_STEP`, `ROTATION_STEP`, coarse/fine) and spend RCS Δv from the spacecraft design (`rcsDeltaV`). Contact at z = 0 docks if offset ≤ 0.1 m, speed < 0.2 m/s and every angle ≤ 1° (`DOCKING_TOLERANCE`); otherwise `result.reasons` says why. Drifting past `MAX_RANGE_M` also fails.
-- **Left**: `FlightControls` (title "Docking controls") with `RcsControls` (translate/rotate pads; keys W/A/S/D/Q/E, arrows, Z/X; F toggles precision), a precision `ViewSwitch` and `PhaseGoal` (its `failed` state shows the reasons and Retry); `DockingStats` below.
+- **Left**: `FlightControls` (title "Docking controls") with `RcsControls` (translate/rotate pads; keys W/A/S/D/Q/E, arrows, Z/X; F toggles precision; held keys light their pad buttons via `heldKeys`), a precision `ViewSwitch` and `PhaseGoal` (its `failed` state shows the reasons and Retry); `DockingStats` below.
 - **Right**: `DockingView`, a perspective wireframe from the spacecraft's port camera (depot body, solar panels, port collar, target cross recessed in the collar for parallax), boresight reticle and HUD (X/Y/Z, attitude and rates, range and closing rate; green within tolerance), with an RCS `FuelGauges`.
+
+## Refueling (`/m1-s7`)
+
+`M1S7.jsx`, `RefuelPanel` layout (title, left/centre/right, status and action). The stages still attached after the flight (route state from M1S4; without it, only the top stage, empty) are filled from the depot, top stage first, over a fixed `TRANSFER_SECONDS` after `HOOKUP_SECONDS` (`src/utils/refueling.js`; depot holds `DEPOT_CAPACITY_T`). Left: the spacecraft's stage `FuelGauges` (`title`, per-gauge `detail`); centre: `RefuelDiagram` (the rocket on its side, nose in the depot's collar, tank fills and an animated flow line); right: the depot gauge. **Undock** (to `/m1-s8`) appears when the transfer is done.
+
+## Ejection burn (`/m1-s8`)
+
+`M1S8.jsx`, `SplitPane` layout. Left: `FlightControls` with `EjectionForm` (burn angle from Earth's orbital direction, + outward; burn Δv; readouts; **Eject** at the bottom, greyed out with a reason when the burn exceeds the active stage's Δv or doesn't escape Earth) and a `PhaseGoal` (closest approach to Mars; Try again on a miss). Right: `TransferView`, an X3DOM scene like `TrajectoryView` (reuses its loader and helpers; `transferScene.js`, units of 1 million km): Sun, both orbits, planets, the 44° phase marks before the burn, the planned path (amber), its closest approach and Mars's position then, and after Eject the flown path (cyan), animated at `DAYS_PER_SECOND`.
+
+- **Model** (`src/utils/marsTransfer.js`, no React): patched conics. The burn is prograde in the 300 km parking orbit (Oberth), giving v∞; the angle sets v∞'s direction relative to Earth's heliocentric velocity. Then Sun-only Verlet integration (6 h steps, `MAX_DAYS`), circular coplanar planets, Mars `PHASE_ANGLE` (44°) ahead at the burn. An encounter is a closest approach within `ENCOUNTER_DISTANCE` (~Mars's sphere of influence). A pure Hohmann burn (~3.6 km/s, 0°) misses by ~1 million km because 44° is short of the ideal 44.3°; ~3.65–3.7 km/s with a small angle hits. `stageDeltaV` uses vacuum Isp with all stages full.

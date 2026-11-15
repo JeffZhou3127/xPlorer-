@@ -57,3 +57,10 @@
   color: #8b949e;
   white-space: nowrap;
 }
+
+.fuel-gauges__detail {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: #8b949e;
+  white-space: nowrap;
+}

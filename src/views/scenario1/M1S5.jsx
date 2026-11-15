@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import OrbitReport from "../../components/OrbitReport/OrbitReport.jsx";
 import { ORBIT_ALTITUDE_KM } from "../../utils/rocketPhysics.js";
 
@@ -11,6 +11,8 @@ const DOCKING_MAX_SPEED = 0.2; // m/s, relative to the depot
 // is reached and the player presses Continue. Sets up the docking step.
 const M1S5 = () => {
   const navigate = useNavigate();
+  // The flight's leftover stages, passed on to refueling (M1S7).
+  const { state } = useLocation();
   return (
     <OrbitReport
       paragraphs={[
@@ -18,7 +20,7 @@ const M1S5 = () => {
         `After a few small manoeuvres, your rocket is now within ${DOCKING_DISTANCE_M} meters of a refueling depot.`,
         `To refuel, you need to dock with the depot to within ${DOCKING_ACCURACY_M} meters of accuracy, at less than ${DOCKING_MAX_SPEED} m/s relative velocity.`,
       ]}
-      onContinue={() => navigate("/m1-s6")}
+      onContinue={() => navigate("/m1-s6", { state })}
     />
   );
 };

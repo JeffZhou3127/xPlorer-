@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
 import FlightControls from "../../components/FlightControls/FlightControls.jsx";
 import RcsControls from "../../components/RcsControls/RcsControls.jsx";
@@ -109,6 +109,8 @@ const guidance = (docking) => {
 // (with time warp) sits at the bottom centre. Once docked, Continue leads to M1S7.
 const M1S6 = () => {
   const navigate = useNavigate();
+  // The flight's leftover stages (from M1S5), passed on to refueling.
+  const { state } = useLocation();
   const design = useSelector(selectSpacecraftDesign);
   const rcsDeltaV = computeSpacecraftStats(design).rcsDeltaV;
 
@@ -215,7 +217,7 @@ const M1S6 = () => {
                   failedText={result?.reasons.join(" ")}
                   action={
                     result?.docked
-                      ? { label: "Continue", onClick: () => navigate("/m1-s7") }
+                      ? { label: "Continue", onClick: () => navigate("/m1-s7", { state }) }
                       : { label: "Retry docking", onClick: retry }
                   }
                 />

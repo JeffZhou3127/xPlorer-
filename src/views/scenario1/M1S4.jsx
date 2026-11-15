@@ -278,7 +278,7 @@ const M1S4 = () => {
               />
               <div className="flight-controls__column">
                 <PitchControl rate={pitchRate} maxRate={MAX_PITCH_RATE} onChange={setPitchRate} />
-                <PhaseGoal steps={2} unit="km" {...goalCard(phase, flight, readouts, coastWarp, startCoast, () => navigate("/m1-s5"))} />
+                <PhaseGoal steps={2} unit="km" {...goalCard(phase, flight, readouts, coastWarp, startCoast, () => navigate("/m1-s5", { state: { flight: { stageIndex, stageFuel: flight.stageFuel } } }))} />
               </div>
             </FlightControls>
             <FlightStats
