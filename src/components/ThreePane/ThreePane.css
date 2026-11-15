@@ -8,6 +8,8 @@
 .three-pane__side {
   box-sizing: border-box;
   padding: 2rem;
+  /* Lets the end of each pane scroll clear of the floating Back / Continue buttons. */
+  padding-bottom: 6rem;
   overflow-y: auto;
 }
 

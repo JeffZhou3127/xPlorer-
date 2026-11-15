@@ -1,0 +1,91 @@
+.mission-clock {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  z-index: 100;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.5rem 1.25rem;
+  background: #000;
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+}
+
+.mission-clock__caption {
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+
+.mission-clock__time {
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: #00e5ff;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
+}
+
+/* Time warp stepper: ◀ #x ▶. An arrow greys out when it can't go further. */
+.mission-clock__warp {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.mission-clock__arrow {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  color: #00e5ff;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.mission-clock__arrow svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: currentColor;
+}
+
+.mission-clock__arrow:hover:not(:disabled) {
+  filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.7));
+}
+
+.mission-clock__arrow:disabled {
+  color: #484f58;
+  cursor: default;
+}
+
+.mission-clock__arrow:focus-visible {
+  outline: 2px solid #e6edf3;
+  outline-offset: 1px;
+}
+
+.mission-clock__warp-value {
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: #00e5ff;
+}
+
+/* "Paused" is wider than "#x"; the fixed width keeps the arrows from jumping. */
+.mission-clock__warp-value {
+  min-width: 4.5em;
+}
+
+.mission-clock__warp-value--paused {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffb840;
+}

@@ -5,7 +5,7 @@ const Scenario1 = () => {
     <>
       <MissionObjective
         name="Mars Mission"
-        description="Your objective is to be the first person to reach Mars orbit. You will use orbital mechanics to achieve a polar orbit"
+        description="Your objective is to be the first person to reach Mars orbit. You will use orbital mechanics to achieve a polar orbit."
         startPath="/m1-s1"
       />
     </>

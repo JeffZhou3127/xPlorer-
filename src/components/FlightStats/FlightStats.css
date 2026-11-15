@@ -1,0 +1,58 @@
+/* Sits under the flight controls in the left pane, divided from them by a line.
+   Uses the shared .rocket-stats__* title and stat styles, tightened up here. */
+.flight-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+.flight-stats__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flight-stats__group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+
+/* A faint rule running from the group name to the edge. */
+.flight-stats__group-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(139, 148, 158, 0.25);
+}
+
+/* Columns of equal width, so both groups line up; four across on a typical screen. */
+.flight-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.6rem 1rem;
+  margin: 0;
+}
+
+.flight-stats .rocket-stats__stat dt {
+  font-size: 0.72rem;
+}
+
+.flight-stats .rocket-stats__stat dd {
+  margin-top: 0.1rem;
+  font-size: 1.1rem;
+}
+
+/* Altitude is the headline number. */
+.flight-stats__group:first-of-type .rocket-stats__stat:first-child dd {
+  color: #00e5ff;
+}

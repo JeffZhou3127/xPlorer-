@@ -5,14 +5,13 @@ export const G0 = 9.80665; // standard gravity, m/s²
 const SEA_LEVEL_PRESSURE = 101325;
 const SCALE_HEIGHT_KM = 8.5; // isothermal atmosphere approximation
 
-// Spacecraft on top of the stack (capsule, service module and fairing).
-export const PAYLOAD_MASS = 12;
-
 // Low Earth orbit target: circular orbital velocity v = √(GM / r) at 300 km altitude
 // (about 7,726 m/s). Gravity and drag losses on the way up are not included.
-const EARTH_GM = 3.986004418e14; // m³/s²
-const EARTH_RADIUS = 6371e3; // m
+export const EARTH_GM = 3.986004418e14; // m³/s²
+export const EARTH_RADIUS = 6371e3; // m
 export const ORBIT_ALTITUDE_KM = 300;
+// Mission 1's flight goals: the apogee, then the perigee, must end up in this window (km).
+export const ORBIT_WINDOW_KM = { min: ORBIT_ALTITUDE_KM - 10, max: ORBIT_ALTITUDE_KM + 10 };
 export const ORBIT_DELTA_V = Math.sqrt(EARTH_GM / (EARTH_RADIUS + ORBIT_ALTITUDE_KM * 1000));
 
 // Characteristic velocity (c*), ratio of specific heats of the exhaust,
@@ -196,7 +195,7 @@ export const dryMass = (stage) =>
 // Solid propellant is dense, cheap and simple, but less efficient than liquid engines.
 export const SRB_DENSITY = 1.8; // t/m³
 const SRB_ISP = 250; // averaged over the climb from sea level, s
-const SRB_BURN_TIME = 100; // s
+export const SRB_BURN_TIME = 100; // s
 const SRB_CASING_FRACTION = 0.12; // steel casing and nozzle, as a share of propellant mass
 const SRB_HARDWARE_MASS = 1; // attachment struts and separation hardware, t
 const SRB_COST_PER_TONNE = 0.03;
@@ -204,10 +203,15 @@ const SRB_HARDWARE_COST = 1.5;
 
 // The boosters fire from the pad alongside Stage 1 and are dropped once empty.
 // For Δv they are treated as their own phase that carries the whole fuelled stack.
+export const srbDryMass = (srbs) => srbs.fuel * SRB_CASING_FRACTION + SRB_HARDWARE_MASS;
+
+// Combined thrust of the pair in newtons, constant for the whole burn.
+export const srbThrust = (srbs) => ((srbs.fuel * 1000) / SRB_BURN_TIME) * SRB_ISP * G0;
+
 const computeSrbStats = (srbs, stackMass) => {
-  const dry = srbs.fuel * SRB_CASING_FRACTION + SRB_HARDWARE_MASS;
+  const dry = srbDryMass(srbs);
   const startMass = stackMass + dry + srbs.fuel;
-  const thrust = ((srbs.fuel * 1000) / SRB_BURN_TIME) * SRB_ISP * G0;
+  const thrust = srbThrust(srbs);
 
   return {
     cost: srbs.fuel * SRB_COST_PER_TONNE + SRB_HARDWARE_COST,
@@ -224,9 +228,10 @@ const computeSrbStats = (srbs, stackMass) => {
 // Per-stage performance; `stages` is ordered from the bottom stage up.
 // Each stage pushes everything above it, so mass is accumulated from the top down.
 // `srbs` is optional ({ fuel }) and adds a booster phase below Stage 1.
-export const computeRocketStats = (stages, srbs = null) => {
+// `payloadMass` is the spacecraft on top, in tonnes (from the spacecraft designer).
+export const computeRocketStats = (stages, srbs, payloadMass) => {
   const results = Array.from({ length: stages.length });
-  let massAbove = PAYLOAD_MASS;
+  let massAbove = payloadMass;
   let totalDeltaV = 0;
   let totalCost = 0;
 
@@ -275,5 +280,6 @@ export const computeRocketStats = (stages, srbs = null) => {
     totalCost,
     liftoffMass: massAbove,
     liftoffThrustToWeight,
+    payloadMass,
   };
 };

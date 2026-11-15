@@ -118,65 +118,8 @@
   background: #ff7b72;
 }
 
-.rocket-stats__continue {
-  position: relative;
-  display: flex;
-  justify-content: flex-end;
-  /* Room below the button so the deployed site's branding badge doesn't cover it. */
-  padding-bottom: 4rem;
-}
-
-/* Reason the Continue button is unavailable, shown above it on hover or focus. */
-.rocket-stats__continue-tip {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 0.5rem);
-  max-width: 16rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: #ff7b72;
-  background: #161b22;
-  border: 1px solid #ff7b72;
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease;
-}
-
-.rocket-stats__continue-button:hover + .rocket-stats__continue-tip,
-.rocket-stats__continue-button:focus-visible + .rocket-stats__continue-tip {
-  opacity: 1;
-  visibility: visible;
-}
-
-.rocket-stats__continue-button {
-  padding: 0.5rem 1.25rem;
-  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
-  font-size: 0.8rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #0d1117;
-  background: var(--rs-accent);
-  border: 1px solid var(--rs-accent);
-  cursor: pointer;
-}
-
-.rocket-stats__continue-button:not([aria-disabled="true"]):hover,
-.rocket-stats__continue-button:not([aria-disabled="true"]):focus-visible {
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
-}
-
-.rocket-stats__continue-button[aria-disabled="true"] {
-  color: #6e7681;
-  background: transparent;
-  border-color: #30363d;
-  cursor: not-allowed;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .rocket-stats__bar-fill,
-  .rocket-stats__continue-tip {
+  .rocket-stats__bar-fill {
     transition: none;
   }
 }

@@ -1,0 +1,36 @@
+.view-switch {
+  display: flex;
+  align-self: flex-start;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+}
+
+.view-switch__option {
+  padding: 0.4rem 1rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #8b949e;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.view-switch__option + .view-switch__option {
+  border-left: 1px solid rgba(0, 229, 255, 0.4);
+}
+
+.view-switch__option:hover,
+.view-switch__option:focus-visible {
+  color: #e6edf3;
+}
+
+.view-switch__option[aria-pressed="true"] {
+  color: #000;
+  background: #00e5ff;
+}
+
+.view-switch__option:focus-visible {
+  outline: 2px solid #e6edf3;
+  outline-offset: 2px;
+}

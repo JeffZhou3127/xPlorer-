@@ -1,0 +1,116 @@
+/* Same card look as the control cards, with a green accent once the goal is reached. */
+.phase-goal {
+  --pg-accent: #ffb840;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(255, 184, 64, 0.45);
+  border-left-width: 3px;
+  background: rgba(255, 184, 64, 0.05);
+}
+
+.phase-goal--reached {
+  --pg-accent: #3fb950;
+
+  border-color: rgba(63, 185, 80, 0.55);
+  background: rgba(63, 185, 80, 0.06);
+}
+
+.phase-goal__title {
+  margin: 0;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--pg-accent);
+}
+
+.phase-goal__goal {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #e6edf3;
+}
+
+.phase-goal__bar {
+  position: relative;
+  height: 0.45rem;
+  background: rgba(139, 148, 158, 0.2);
+}
+
+/* The target window: a brighter band, with ticks at its edges above and below the bar. */
+.phase-goal__window {
+  position: absolute;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  border-left: 1px solid #e6edf3;
+  border-right: 1px solid #e6edf3;
+  background: rgba(230, 237, 243, 0.25);
+}
+
+.phase-goal__fill {
+  position: relative;
+  height: 100%;
+  background: var(--pg-accent);
+  transition: width 0.2s linear;
+}
+
+.phase-goal__fill--over {
+  background: #ff6b6b;
+}
+
+.phase-goal__progress {
+  margin: 0;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: #8b949e;
+}
+
+.phase-goal__progress strong {
+  font-weight: 400;
+  color: #e6edf3;
+}
+
+.phase-goal__status {
+  margin: 0;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #8b949e;
+}
+
+.phase-goal--reached .phase-goal__status {
+  font-style: normal;
+  color: var(--pg-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-goal__fill {
+    transition: none;
+  }
+}
+
+/* "Next goal": a solid accent button, so the way forward is obvious. */
+.phase-goal__action {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  padding: 0.4rem 1rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #000;
+  background: var(--pg-accent);
+  border: 1px solid var(--pg-accent);
+  cursor: pointer;
+}
+
+.phase-goal__action:hover {
+  filter: brightness(1.15);
+}
+
+.phase-goal__action:focus-visible {
+  outline: 2px solid #e6edf3;
+  outline-offset: 2px;
+}

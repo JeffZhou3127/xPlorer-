@@ -3,20 +3,14 @@ import {
   ALTITUDE_RANGE_KM,
   ORBIT_ALTITUDE_KM,
   ORBIT_DELTA_V,
-  PAYLOAD_MASS,
 } from "../../utils/rocketPhysics.js";
 import { GLOSSARY } from "../../utils/glossary.js";
+import { format, money } from "../../utils/format.js";
 import InfoTip from "../InfoTip/InfoTip.jsx";
 import "./RocketStats.css";
 
-const format = (value, digits = 0) =>
-  value.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
-
-// Costs are in millions of dollars.
-const money = (value) => `$${format(value, 1)}M`;
-
-// Progress bar toward a target; turns red when `over` is set.
-const Meter = ({ label, value, max, over = false }) => (
+// Progress bar toward a target; turns red when `alert` is set.
+export const Meter = ({ label, value, max, alert = false }) => (
   <div
     className="rocket-stats__bar"
     role="meter"
@@ -26,15 +20,17 @@ const Meter = ({ label, value, max, over = false }) => (
     aria-valuenow={Math.round(value)}
   >
     <div
-      className={`rocket-stats__bar-fill ${over ? "rocket-stats__bar-fill--over" : ""}`}
+      className={`rocket-stats__bar-fill ${alert ? "rocket-stats__bar-fill--over" : ""}`}
       style={{ width: `${Math.min(1, value / max) * 100}%` }}
     />
   </div>
 );
 
-const Info = ({ topic }) => <InfoTip term={GLOSSARY[topic].term}>{GLOSSARY[topic].text}</InfoTip>;
+export const Info = ({ topic }) => (
+  <InfoTip term={GLOSSARY[topic].term}>{GLOSSARY[topic].text}</InfoTip>
+);
 
-const Stat = ({ label, info, value, unit }) => (
+export const Stat = ({ label, info, value, unit }) => (
   <div className="rocket-stats__stat">
     <dt>
       {label}
@@ -108,11 +104,8 @@ const SrbStats = ({ stats }) => (
   </section>
 );
 
-const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) => {
-  // Only the budget is a hard requirement; the Δv meters are guidance for the designer.
+const RocketStats = ({ stages, stats, budget, onAltitudeChange }) => {
   const overBudget = stats.totalCost - budget;
-  const canContinue = overBudget <= 0;
-  const blockedReason = `The design is ${money(overBudget)} over budget.`;
 
   return (
     <div className="rocket-stats">
@@ -127,7 +120,7 @@ const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) =>
           value={format(stats.liftoffThrustToWeight, 2)}
           unit=""
         />
-        <Stat label="Payload" info="payload" value={format(PAYLOAD_MASS)} unit="t" />
+        <Stat label="Payload" info="payload" value={format(stats.payloadMass, 2)} unit="t" />
       </dl>
 
       <div className="rocket-stats__orbit">
@@ -156,7 +149,7 @@ const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) =>
           label="Total cost compared with budget"
           value={stats.totalCost}
           max={budget}
-          over={overBudget > 0}
+          alert={overBudget > 0}
         />
       </div>
 
@@ -175,25 +168,6 @@ const RocketStats = ({ stages, stats, budget, onAltitudeChange, onContinue }) =>
       })}
 
       {stats.srbs && <SrbStats stats={stats.srbs} />}
-
-      <div className="rocket-stats__continue">
-        {/* aria-disabled rather than disabled, so the button can still be hovered and
-            focused to show why it is unavailable. */}
-        <button
-          type="button"
-          className="rocket-stats__continue-button"
-          aria-disabled={!canContinue}
-          aria-describedby={canContinue ? undefined : "rocket-stats-blocked"}
-          onClick={canContinue ? onContinue : undefined}
-        >
-          Continue →
-        </button>
-        {!canContinue && (
-          <span className="rocket-stats__continue-tip" id="rocket-stats-blocked" role="tooltip">
-            {blockedReason}
-          </span>
-        )}
-      </div>
     </div>
   );
 };

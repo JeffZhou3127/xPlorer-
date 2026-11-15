@@ -61,3 +61,64 @@
   stroke-dasharray: 14 3 2 3;
   opacity: 0.45;
 }
+
+/* Exhaust plumes. Two nested groups flicker at different rates, scaling from the
+   nozzle exit (top centre of the plume), so the flame looks irregular. */
+.rd-flame,
+.rd-flame__inner {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+.rd-flame {
+  animation: rd-flicker-a 0.11s ease-in-out infinite alternate;
+}
+
+.rd-flame__inner {
+  animation: rd-flicker-b 0.17s ease-in-out infinite alternate;
+}
+
+.rd-flame__plume {
+  stroke: none;
+  opacity: 0.75;
+}
+
+.rd-flame__core {
+  stroke: none;
+  opacity: 0.95;
+}
+
+.rd-flame--kerolox .rd-flame__plume { fill: #ff8c2e; }
+.rd-flame--kerolox .rd-flame__core { fill: #ffe9a8; }
+.rd-flame--methalox .rd-flame__plume { fill: #5b8cff; }
+.rd-flame--methalox .rd-flame__core { fill: #dfe9ff; }
+.rd-flame--hydrolox .rd-flame__plume { fill: #9fd4ff; opacity: 0.35; }
+.rd-flame--hydrolox .rd-flame__core { fill: #ffffff; opacity: 0.7; }
+.rd-flame--solid .rd-flame__plume { fill: #ff7a1f; }
+.rd-flame--solid .rd-flame__core { fill: #fff6d8; }
+
+/* Frozen while the flight is paused. */
+.flight-view--paused .rd-flame,
+.flight-view--paused .rd-flame__inner {
+  animation-play-state: paused;
+}
+
+@keyframes rd-flicker-a {
+  0% { transform: scale(1, 1); }
+  35% { transform: scale(0.96, 0.9); }
+  70% { transform: scale(1.03, 1.06); }
+  100% { transform: scale(0.98, 0.94); }
+}
+
+@keyframes rd-flicker-b {
+  0% { transform: scale(1, 1.04); opacity: 1; }
+  50% { transform: scale(0.97, 0.93); opacity: 0.85; }
+  100% { transform: scale(1.02, 1); opacity: 0.95; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-flame,
+  .rd-flame__inner {
+    animation: none;
+  }
+}
