@@ -115,6 +115,9 @@ export const Readout = ({ label, info, value, alert = false }) => (
 // the bottom. Eject is greyed out with
 // `blockedReason` shown under it when the burn can't be made; `locked` freezes the form
 // once the burn is done.
+// Optional, for a burn that isn't leaving a planet's orbit around the Sun (the Moon transfer):
+// `children` (extra fields, above the burn angle), `angleHint` (the burn angle's hint) and
+// `departure` (a Readout's props, in place of the v∞ row).
 const EjectionForm = ({
   origin = "Earth",
   retrograde = false,
@@ -131,6 +134,9 @@ const EjectionForm = ({
   blockedReason,
   locked,
   onEject,
+  children,
+  angleHint,
+  departure,
 }) => (
   <form
     className="ejection-form"
@@ -143,13 +149,15 @@ const EjectionForm = ({
       Ejection burn
       <Info topic="ejectionBurn" />
     </h3>
+    {children}
     <Field
       label="Burn angle"
       info="burnAngle"
       hint={
-        retrograde
+        angleHint ??
+        (retrograde
           ? `Against the direction ${origin} moves along its orbit: 0° is straight back, + points outward (away from the Sun).`
-          : `From the direction ${origin} moves along its orbit: 0° is straight ahead, + points outward (away from the Sun).`
+          : `From the direction ${origin} moves along its orbit: 0° is straight ahead, + points outward (away from the Sun).`)
       }
       unit="°"
       range={angleRange}
@@ -174,10 +182,12 @@ const EjectionForm = ({
       <Readout label="Required Δv" value={`${format(burn)} m/s`} alert={burn > available} />
       <Readout label={`${stageLabel} Δv available`} info="deltaV" value={`${format(Math.floor(available))} m/s`} />
       <Readout
-        label="Departure speed (v∞)"
-        info="vInf"
-        value={vInf === null ? `Doesn't escape ${origin}` : `${format(vInf / 1000, 2)} km/s`}
-        alert={vInf === null}
+        {...(departure ?? {
+          label: "Departure speed (v∞)",
+          info: "vInf",
+          value: vInf === null ? `Doesn't escape ${origin}` : `${format(vInf / 1000, 2)} km/s`,
+          alert: vInf === null,
+        })}
       />
     </dl>
 

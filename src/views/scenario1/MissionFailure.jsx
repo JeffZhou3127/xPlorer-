@@ -12,7 +12,8 @@ import { isReentryFailure } from "../../utils/reentry.js";
 // route state as `retryState` (the cruise steps also their path as `retryPath`), to fly
 // them again; visiting the URL directly shows a generic explanation.
 // Launch: Retry starts a fresh launch, Redesign goes back to the rocket designer (step 2).
-// Cruise: Retry goes back to that ejection burn, Redesign to the spacecraft designer (step 1).
+// Cruise: Retry goes back to that ejection burn, Redesign to the spacecraft designer (step 1;
+// mission 2's Moon transfer passes its lander designer as `redesignPath`).
 // Mars: Retry flies the arrival again, Redesign goes back to the rocket designer.
 // Reentry (step 14: burned up or skipped back into space): Retry flies it again, or home.
 const MissionFailure = () => {
@@ -22,6 +23,7 @@ const MissionFailure = () => {
     targets = { apogee: ORBIT_WINDOW_KM, perigee: ORBIT_WINDOW_KM },
     retryState = null,
     retryPath = "/m1-s8",
+    redesignPath = "/m1-s1",
   } = useLocation().state ?? {};
   const { reason, detail, tip } = explainFailure(failure, targets);
 
@@ -29,7 +31,7 @@ const MissionFailure = () => {
   if (isCruiseFailure(failure)) {
     actions = {
       onRetry: () => navigate(retryPath, { state: retryState }),
-      onRedesign: () => navigate("/m1-s1"),
+      onRedesign: () => navigate(redesignPath),
       retryLabel: "Retry ejection burn",
       redesignLabel: "Redesign spacecraft",
     };

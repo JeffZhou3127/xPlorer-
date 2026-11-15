@@ -1,10 +1,3 @@
-import {
-  BATTERY_BACKUP_HOURS,
-  BATTERY_TARGET_KWH,
-  HEAT_LOAD_KW,
-  POWER_DEMAND_KW,
-  RCS_DELTA_V_TARGET,
-} from "../../utils/spacecraftPhysics.js";
 import { format, money } from "../../utils/format.js";
 import { Info, Meter, Stat } from "../RocketStats/RocketStats.jsx";
 import "../RocketStats/RocketStats.css";
@@ -24,7 +17,9 @@ const Requirement = ({ label, info, value, target, unit, digits = 1, note }) => 
   </div>
 );
 
-const SpacecraftStats = ({ stats, budget }) => {
+// `stats` comes from computeSpacecraftStats or computeLanderStats, including the list of
+// requirements to show; `name` labels the vehicle's mass.
+const SpacecraftStats = ({ stats, budget, name = "Spacecraft" }) => {
   const overBudget = stats.totalCost - budget;
 
   return (
@@ -32,7 +27,7 @@ const SpacecraftStats = ({ stats, budget }) => {
       <h2 className="rocket-stats__title">Stats</h2>
 
       <dl className="rocket-stats__grid rocket-stats__totals">
-        <Stat label="Spacecraft mass" info="spacecraftMass" value={format(stats.totalMass, 2)} unit="t" />
+        <Stat label={`${name} mass`} info="spacecraftMass" value={format(stats.totalMass, 2)} unit="t" />
         <Stat
           label="Solar power (Earth)"
           info="solarPanels"
@@ -40,40 +35,14 @@ const SpacecraftStats = ({ stats, budget }) => {
           unit="kW"
         />
         <Stat label="RCS Δv" info="rcsDeltaV" value={format(stats.rcsDeltaV)} unit="m/s" />
+        {stats.landerDeltaV !== undefined && (
+          <Stat label="Lander Δv" info="landerFuel" value={format(stats.landerDeltaV)} unit="m/s" />
+        )}
       </dl>
 
-      <Requirement
-        label="Power at Mars"
-        info="powerAtMars"
-        value={stats.solarMars}
-        target={POWER_DEMAND_KW}
-        unit="kW"
-      />
-      <Requirement
-        label="Battery backup"
-        info="batteryBackup"
-        value={stats.batteryCapacity}
-        target={BATTERY_TARGET_KWH}
-        unit="kWh"
-        digits={0}
-        note={`Enough to run the spacecraft for ${BATTERY_BACKUP_HOURS} hours without sunlight.`}
-      />
-      <Requirement
-        label="Heat rejection"
-        info="heatRejection"
-        value={stats.heatRejection}
-        target={HEAT_LOAD_KW}
-        unit="kW"
-      />
-      <Requirement
-        label="RCS Δv"
-        info="rcsDeltaV"
-        value={stats.rcsDeltaV}
-        target={RCS_DELTA_V_TARGET}
-        unit="m/s"
-        digits={0}
-        note="Enough to dock with the refueling station and hold attitude on the way."
-      />
+      {stats.requirements.map((requirement) => (
+        <Requirement key={requirement.label} {...requirement} />
+      ))}
 
       <div className="rocket-stats__orbit">
         <div className="rocket-stats__label-row">

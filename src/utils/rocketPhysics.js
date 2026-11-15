@@ -283,3 +283,45 @@ export const computeRocketStats = (stages, srbs, payloadMass) => {
     payloadMass,
   };
 };
+
+// Each attached stage's share of a burn, in firing order: `stages` from `stageIndex` up,
+// with `stageFuel` the fraction of each stage's fuel still on board. Each stage pushes the
+// stages above it and the payload (t); `isp(stage)` gives its specific impulse in seconds.
+// Returns [{ index, fuel (t), startMass (t), exhaust (m/s), deltaV (m/s) }].
+export const stagePhases = (stages, stageIndex, stageFuel, payloadMass, isp) => {
+  const phases = [];
+  let massAbove = payloadMass;
+  for (let i = stages.length - 1; i >= stageIndex; i--) {
+    const fuel = stages[i].fuel * stageFuel[i];
+    const dry = massAbove + dryMass(stages[i]);
+    const exhaust = isp(stages[i]) * G0;
+    phases.unshift({ index: i, fuel, startMass: dry + fuel, exhaust, deltaV: exhaust * Math.log((dry + fuel) / dry) });
+    massAbove = dry + fuel;
+  }
+  return phases;
+};
+
+// Burns `deltaV` (m/s) with the stages from `stageIndex` up, in order, dropping every
+// stage it empties (the top stage stays on, even when empty). Arguments as stagePhases.
+// Returns { stageIndex, stageFuel, short }: the stage now firing, the fuel fractions
+// left, and the Δv still missing when the stages ran out (0 if the burn was completed).
+export const spendDeltaV = (stages, stageIndex, stageFuel, payloadMass, deltaV, isp) => {
+  const fuelLeft = [...stageFuel];
+  let active = stageIndex;
+  let need = deltaV;
+  for (const { index, fuel, startMass, exhaust, deltaV: phaseDeltaV } of stagePhases(
+    stages,
+    stageIndex,
+    stageFuel,
+    payloadMass,
+    isp,
+  )) {
+    if (need <= 0) break;
+    const share = Math.min(need, phaseDeltaV);
+    const burned = startMass * (1 - Math.exp(-share / exhaust));
+    fuelLeft[index] = fuel > 0 ? Math.max(0, (fuel - burned) / stages[index].fuel) : 0;
+    need -= share;
+    if (share >= phaseDeltaV && index < stages.length - 1) active = index + 1;
+  }
+  return { stageIndex: active, stageFuel: fuelLeft, short: Math.max(0, need) };
+};

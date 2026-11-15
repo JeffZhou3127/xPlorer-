@@ -8,6 +8,8 @@ xPlorer+ is an early-stage React app: a Mars mission game. Routes, each step's C
 
 `/` home → `/scenario1` objective → `/m1-s1` spacecraft designer → `/m1-s2` rocket designer → `/m1-s3` launch confirmation → `/m1-s4` flight panel → `/m1-s5` orbit reached → `/m1-s6` docking → `/m1-s7` refueling → `/m1-s8` Mars ejection burn → `/m1-s9` Mars orbit insertion → `/m1-s10` science → `/m1-s11` Mars depot docking → `/m1-s12` refueling → `/m1-s13` Earth ejection burn → `/m1-s14` reentry (splashdown, link home). `/mission-failure` is reached from M1S4, M1S8/M1S13 (systems failure), M1S9 and M1S14.
 
+Scenario 2 (Moon and back, easier: Earth and Moon half size and half as far apart, same surface gravity): `/scenario2` objective → `/m2-s1` lander designer → `/m2-s2` rocket designer → `/m1-s3` launch confirmation (shared: M2S2 passes `{ back, next }` route state) → `/m2-s3` automatic launch (`autoLaunch.js`: spends `M2_ORBIT_DELTA_V` SRBs first, then stage by stage via `spendDeltaV`; `FlightView` animation; short of orbit → back to the designer) → `/m2-s4` trans-lunar injection → `/m2-s5` (not built yet). Views in `src/views/scenario2/`.
+
 Steps 6–8 and 11–13 share views: `M1S6A11` (docking), `M1S7A12` (refueling), `M1S8A13` (ejection). `App.jsx` passes `leg="outbound"` (6–8) or `"return"` (11–13) plus a matching `key`; each view keeps a `LEGS` table of what differs.
 
 ## Commands
@@ -32,7 +34,7 @@ Steps 6–8 and 11–13 share views: `M1S6A11` (docking), `M1S7A12` (refueling),
 - **Glossary**: technical terms get a "?" `InfoTip` (bubble portalled to `document.body`). Text lives in `src/utils/glossary.js` (`GLOSSARY[key] = { term, text }`); render with `<Info topic="key" />` or the `info` prop many components take. Add new terms there, never inline.
 - Mission UI reused across views (optional props default to the original look): `FlightControls` (`title`), `MissionClock` (`caption`, `locked`; warp stepper, 0 = paused), `PhaseGoal` (meters `{ label, value, valueText, target: { min, max } }`, `reached` + `action`, `failed`/`failedText`; no fill transition), `FuelGauges` (`title`, per-gauge `detail`), `ViewSwitch`.
 - `StepNav`: fixed Back/Continue bar beside a designer view's layout; buttons only when `onBack`/`onContinue` given, `blockedReason` disables Continue. Buttons inset 205px and `ThreePane` side panes padded to clear the deployed site's corner badge. M1S3 and M1S4 have none.
-- `TrajectoryView`/`TransferView` use X3DOM, loaded lazily by `x3domLoader.js` (torn down by `shutdownX3dom`). Scene markup built once (`trajectoryScene.js`, `marsScene.js`, `transferScene.js`) and updated via `setAttribute`; React never renders X3D tags.
+- `TrajectoryView`/`TransferView` use X3DOM, loaded lazily by `x3domLoader.js` (torn down by `shutdownX3dom`). Scene markup built once (`trajectoryScene.js`, `marsScene.js`, `transferScene.js`) and updated via `setAttribute`; React never renders X3D tags. `TransferView` is generic: a page passes a stable `scene` (`marsTransferScene(leg)`, `MOON_SCENE`), `bodies` positions, `phase` lines (`phaseLines`) and `readout`. `useCoast` (hook) advances the coast clock.
 - Failure wording: `src/utils/missionFailure.js`, shown by `FailureReport`. `MissionFailure` uses `retryState`/`retryPath` to offer a retry or a redesign.
 
 ## Designers (`/m1-s1`, `/m1-s2`)
@@ -42,6 +44,7 @@ Both `ThreePane` (form / blueprint diagram / stats); Continue depends **only on 
 - **Spacecraft** `{ solarPanels, batteries, radiators, rcsFuel }`, each system `small`/`medium`/`large`. Model `spacecraftPhysics.js` (`computeSpacecraftStats`); its `totalMass` (`selectSpacecraftMass`) is the rocket's payload. `SpacecraftDiagram` reuses `.rd-*` classes from `RocketDiagram.css`.
 - **Rocket**: stage `{ id, fuel, propellant, cycle, gasGenerator, expansionRatio, engines, altitude }`. `stages[0]` is the bottom stage; panels list top-first (`toReversed()`); new stages go underneath; max 3. Engine limits by position from the bottom, fuel ranges/defaults from the **top** (a lone stage is an upper stage; removal re-clamps). SRBs `null | { fuel }`, need ≥ 2 stages, fuel capped by `maxSrbFuel(stages)` (`rocketLayout.js`); burn as a separate first phase.
 - `rocketPhysics.js` (tonnes, Pa, km): Isp from c\*, chamber pressure, turbopump efficiency and nozzle relations with exponential atmosphere and Summerfield separation; thrust `engines × Pc × At × CF × efficiency`; Δv by rocket equation top-down (`computeRocketStats(stages, srbs, payloadMass)`); `stageCost`. Target orbit 300 ± 10 km (`ORBIT_ALTITUDE_KM`, `ORBIT_WINDOW_KM`).
+- **Lander** (`/m2-s1`, `landerSlice.js`): the spacecraft design plus `landerFuel` (t); `landerPhysics.js` (`computeLanderStats`, scaled-Earth orbit target `M2_ORBIT_*`). The spacecraft form/diagram/stats show the landing stage when the design has `landerFuel`; stats render `stats.requirements` (Δv meters fill landing → liftoff → ejection in order). `/m2-s2` shares the rocket slice with M1S2 via `useRocketDesign`; `RocketStats` takes `orbit`/`orbitNote`.
 - `RocketBody.jsx` draws the rocket (diagram and `FlightView`); geometry in `rocketLayout.js`.
 
 ## Flight panel (`/m1-s4`) and orbit insertion (`/m1-s9`)
@@ -65,7 +68,7 @@ Both `ThreePane` (form / blueprint diagram / stats); Continue depends **only on 
 Left: `EjectionForm` (burn angle and Δv, propellant meter, Eject disabled if over the active stage's Δv or not escaping), `PhaseGoal` (closest approach; Continue on encounter with `arrival: { vInf }`), `CruiseStats`. Right: `TransferView` (units 1 million km) with RCS/battery gauges.
 
 - `marsTransfer.js`: every function takes a leg (`TO_MARS`/`TO_EARTH`). Patched conics: prograde burn in the parking orbit gives v∞, then Sun-only Verlet. Outbound ~3.65–3.7 km/s at a small angle hits Mars (target leads 44°); return ~1.13–1.2 km/s at 0° from the 1,000 × 17,000 km Mars orbit (Earth trails 75°).
-- `cruiseSystems.js`: `cruiseTimeline` simulates power (1/r² solar + battery), heat (cabin limit) and RCS hour by hour; the first failure (`power`/`heat`/`rcs`) goes to `/mission-failure`.
+- `cruiseSystems.js`: `cruiseTimeline(course, …)` (`planetCourse(leg, path)` here) simulates power (1/r² solar + battery), heat (cabin limit) and RCS hour by hour; the first failure (`power`/`heat`/`rcs`) goes to `/mission-failure`.
 
 ## Science (`/m1-s10`)
 
@@ -76,3 +79,7 @@ Left: `EjectionForm` (burn angle and Δv, propellant meter, Eject disabled if ov
 Opens with service-module jettison (`SEPARATION_MS` must match the `ReentryView` CSS animation). `ReentryForm` (entry angle locked at Start; angle of attack until blackout; reuses `EjectionForm`'s `Field`/`Readout`), `ReentryView` (blueprint SVG, heat-shield sections coloured by temperature), `ReentryStats`. Flies live until the blackout (`inBlackout`), then `finishEntry` computes the rest while `RadioBlackout` covers the screen for 15 s. Ends in `Splashdown` or failure (burnup by heat > 2,750 °C or > 15 g, or skip above 125 km).
 
 - `reentry.js`: 2D point mass, ballistic coefficient 350 kg/m², L/D = 0.016 × AoA with lift up while descending; Sutton–Graves heating per section (windward shoulder × `1 + 0.04 × AoA`). Corridor ~5.75–6.25° at 0° AoA, ~5.75–7° at 10–15°.
+
+## Moon transfer (`/m2-s4`)
+
+M1S8's layout aimed at the Moon. `moonTransfer.js`: Earth-centred, Earth-only gravity (Verlet with steps scaled to the local orbit period, points every 600 s) from the 200 km parking orbit; the Moon (192,200 km, ~19-day orbit) leads by the player's **Moon angle**; encounter within 33,000 km. ~2,180 m/s at 0° with the Moon ~115° ahead hits. The burn may use every attached stage (`availableDeltaV`/`burnStages`, vacuum Isp, emptied stages separate). `EjectionForm` takes `children` (extra fields), `angleHint`, `departure` (readout override). The lander's systems run through `cruiseTimeline(moonCourse(path, phaseAngle), …)` with `CruiseStats` and RCS/battery gauges, like M1S8 (1 AU throughout, smaller `thermalMass` so undersized radiators overheat within the ~3.5-day trip); a failure goes to `/mission-failure` with `retryPath` `/m2-s4` and `redesignPath` `/m2-s1`. Continue passes `flight` and `arrival: { vInf }` relative to the Moon.

@@ -18,3 +18,7 @@ export const formatMissionTime = (time) => {
   const ss = String(seconds % 60).padStart(2, "0");
   return `T${sign}${mm}:${ss}`;
 };
+
+// A distance in metres as "1.2 million km", or "34,000 km" when under a million km.
+export const formatDistance = (metres) =>
+  metres >= 1e9 ? `${format(metres / 1e9, 1)} million km` : `${format(Math.round(metres / 1e6) * 1000)} km`;

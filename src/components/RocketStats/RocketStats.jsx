@@ -101,7 +101,22 @@ const SrbStats = ({ stats }) => (
   </section>
 );
 
-const RocketStats = ({ stages, stats, budget, onAltitudeChange }) => {
+// `orbit` is the target orbit's altitude (km) and Δv; `orbitNote` explains what happens after it.
+// Both default to mission 1.
+const RocketStats = ({
+  stages,
+  stats,
+  budget,
+  onAltitudeChange,
+  orbit = { altitudeKm: ORBIT_ALTITUDE_KM, deltaV: ORBIT_DELTA_V },
+  orbitNote = (
+    <>
+      The spacecraft refuels at a station in orbit before heading to Mars, so the rocket only
+      needs to reach orbit.
+      <Info topic="refuelingStation" />
+    </>
+  ),
+}) => {
   const overBudget = stats.totalCost - budget;
 
   return (
@@ -122,17 +137,13 @@ const RocketStats = ({ stages, stats, budget, onAltitudeChange }) => {
 
       <div className="rocket-stats__orbit">
         <div className="rocket-stats__label">
-          Low Earth orbit ({ORBIT_ALTITUDE_KM} km) needs about {format(ORBIT_DELTA_V)} m/s
+          Low Earth orbit ({orbit.altitudeKm} km) needs about {format(orbit.deltaV)} m/s
         </div>
-        <Meter label="Total delta-v compared with orbit" value={stats.totalDeltaV} max={ORBIT_DELTA_V} />
+        <Meter label="Total delta-v compared with orbit" value={stats.totalDeltaV} max={orbit.deltaV} />
         <p className="rocket-stats__note">
           This is an estimate of the minimum Δv required; a real rocket may need more.
         </p>
-        <p className="rocket-stats__note">
-          The spacecraft refuels at a station in orbit before heading to Mars, so the rocket
-          only needs to reach orbit.
-          <Info topic="refuelingStation" />
-        </p>
+        {orbitNote && <p className="rocket-stats__note">{orbitNote}</p>}
       </div>
 
       <div className="rocket-stats__orbit">

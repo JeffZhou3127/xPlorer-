@@ -1,8 +1,8 @@
 import { AU, DAY, positionAt, targetAt, targetName } from "./marsTransfer.js";
 import { HEAT_LOAD_KW, POWER_DEMAND_KW } from "./spacecraftPhysics.js";
 
-// The spacecraft's systems on the coast between the planets (mission 1, steps 8 and 13).
-// No React.
+// The spacecraft's systems on a coast: between the planets (mission 1, steps 8 and 13) or out to
+// the Moon (mission 2, step 4). No React.
 // Power: the panels make `solarEarth` kW at 1 AU, falling with the square of the distance
 // from the Sun; the battery covers any shortfall and recharges from any surplus.
 // Heat: the radiators reject up to their rating; anything above it warms the cabin.
@@ -13,6 +13,7 @@ import { HEAT_LOAD_KW, POWER_DEMAND_KW } from "./spacecraftPhysics.js";
 export const CABIN_NOMINAL_C = 21;
 export const CABIN_MAX_C = 40;
 // Heat (kJ) to warm the whole spacecraft by 1 °C: a small overload takes a few days.
+// A course can set its own (see moonCourse).
 const THERMAL_MASS_KJ_PER_K = 40000;
 
 // RCS Δv (m/s) to turn to the cruise attitude after the burn, then spent per day on trims.
@@ -26,22 +27,34 @@ const STEP = 3600;
 const CRUISE_FAILURE_KINDS = ["power", "heat", "rcs"];
 export const isCruiseFailure = (failure) => CRUISE_FAILURE_KINDS.includes(failure?.kind);
 
-// Hour-by-hour systems state on `leg` (TO_MARS or TO_EARTH) from the burn to `until` s,
-// for a spacecraft with `stats` (from computeSpacecraftStats) and `rcsStart` m/s of RCS
-// Δv left at the burn, along `path` (from transferPath). Returns { samples: [{ t, au, solar (kW), battery (kWh),
+// Where a coast goes, for cruiseTimeline: `at(t)` (position `t` s after the burn, m), `au(at)`
+// (distance from the Sun of that position, AU), `targetAt(t)` (where the target is),
+// `target` (its name) and, optionally, `thermalMass` (kJ per °C).
+// The course along `path` (from transferPath) on an Earth–Mars `leg` (TO_MARS or TO_EARTH).
+export const planetCourse = (leg, path) => ({
+  at: (t) => positionAt(path.points, t),
+  au: (at) => Math.hypot(at.x, at.y) / AU,
+  targetAt: (t) => targetAt(leg, t),
+  target: targetName(leg),
+});
+
+// Hour-by-hour systems state along `course` (see planetCourse) from the burn to `until` s,
+// for a spacecraft with `stats` (from computeSpacecraftStats or computeLanderStats) and
+// `rcsStart` m/s of RCS Δv left at the burn. Returns { samples: [{ t, au, solar (kW), battery (kWh),
 // temperature (°C), rcs (m/s) }], failure }, where `failure` is null or { kind: "power" |
 // "heat" | "rcs", time, ...the state then, plus the design figures it is judged against }
 // and the samples stop at it. Failures also carry `target` (the planet headed for) and
 // `targetDistance` (m).
-export const cruiseTimeline = (leg, path, stats, rcsStart, until) => {
+export const cruiseTimeline = (course, stats, rcsStart, until) => {
+  const thermalMass = course.thermalMass ?? THERMAL_MASS_KJ_PER_K;
   const samples = [];
   let battery = stats.batteryCapacity;
   let temperature = CABIN_NOMINAL_C;
   let rcs = rcsStart - RCS_SETTLE;
 
   for (let t = 0; t <= until + STEP; t += STEP) {
-    const at = positionAt(path.points, t);
-    const au = Math.hypot(at.x, at.y) / AU;
+    const at = course.at(t);
+    const au = course.au(at);
     const now = { t, au, solar: stats.solarEarth / (au * au), battery, temperature, rcs };
     samples.push(now);
 
@@ -50,7 +63,7 @@ export const cruiseTimeline = (leg, path, stats, rcsStart, until) => {
     else if (battery <= 0) kind = "power";
     else if (temperature >= CABIN_MAX_C) kind = "heat";
     if (kind) {
-      const target = targetAt(leg, t);
+      const target = course.targetAt(t);
       return {
         samples,
         failure: {
@@ -64,7 +77,7 @@ export const cruiseTimeline = (leg, path, stats, rcsStart, until) => {
           batteryCapacity: stats.batteryCapacity,
           heatLoad: HEAT_LOAD_KW,
           heatRejection: stats.heatRejection,
-          target: targetName(leg),
+          target: course.target,
           targetDistance: Math.hypot(at.x - target.x, at.y - target.y),
         },
       };
@@ -73,7 +86,7 @@ export const cruiseTimeline = (leg, path, stats, rcsStart, until) => {
     battery = Math.min(stats.batteryCapacity, battery + (now.solar - POWER_DEMAND_KW) * (STEP / 3600));
     // Radiators with spare capacity hold the cabin at the thermostat setting.
     const excess = HEAT_LOAD_KW - stats.heatRejection;
-    temperature = Math.max(CABIN_NOMINAL_C, temperature + (excess * STEP) / THERMAL_MASS_KJ_PER_K);
+    temperature = Math.max(CABIN_NOMINAL_C, temperature + (excess * STEP) / thermalMass);
     rcs -= (RCS_PER_DAY * STEP) / DAY;
   }
   return { samples, failure: null };

@@ -1,4 +1,4 @@
-import { format, formatMissionTime } from "./format.js";
+import { format, formatDistance, formatMissionTime } from "./format.js";
 import { CABIN_MAX_C, RCS_PER_DAY, RCS_SETTLE, isCruiseFailure } from "./cruiseSystems.js";
 import { MARS_SOLAR_FACTOR } from "./spacecraftPhysics.js";
 import { G_LIMIT, SHIELD_LIMIT_C, isReentryFailure } from "./reentry.js";
@@ -50,7 +50,10 @@ const explainCruiseFailure = (failure) => {
   return {
     reason: `The RCS ran dry on ${cruiseDay(failure)}, and the spacecraft could no longer hold its attitude.`,
     detail: `The spacecraft had ${format(failure.rcsStart, 1)} m/s of RCS Δv left at the burn. Turning to the cruise attitude takes ${format(RCS_SETTLE)} m/s, and the small trims that keep the solar panels on the Sun use about ${format(RCS_PER_DAY, 2)} m/s a day.`,
-    tip: "Carry more RCS fuel in the spacecraft designer (it has to last both dockings and both cruises), and dock with fewer, finer pulses so more is left for the cruise.",
+    tip:
+      failure.target === "Moon"
+        ? "Carry more RCS fuel in the lander designer: watch the \"RCS Δv\" meter."
+        : "Carry more RCS fuel in the spacecraft designer (it has to last both dockings and both cruises), and dock with fewer, finer pulses so more is left for the cruise.",
   };
 };
 
@@ -217,7 +220,7 @@ export const failureSummary = (failure) => {
       { label: "Mission day", value: format(Math.floor(failure.time / 86400)) },
       { label: "Phase", value: `Cruise to ${failure.target ?? "Mars"}` },
       { label: "From the Sun", value: `${format(failure.au, 3)} AU`, info: "au" },
-      { label: `To ${failure.target ?? "Mars"}`, value: `${format(failure.targetDistance / 1e9, 1)} million km` },
+      { label: `To ${failure.target ?? "Mars"}`, value: formatDistance(failure.targetDistance) },
     ];
     if (failure.kind === "power") {
       rows.push(

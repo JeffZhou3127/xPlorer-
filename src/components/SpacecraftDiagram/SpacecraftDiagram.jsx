@@ -4,6 +4,7 @@ import {
   RCS_FUEL_RANGE_KG,
   SOLAR_PANELS,
 } from "../../utils/spacecraftPhysics.js";
+import { LANDER_FUEL_RANGE_T } from "../../utils/landerPhysics.js";
 import "../RocketDiagram/RocketDiagram.css";
 import "./SpacecraftDiagram.css";
 
@@ -147,25 +148,91 @@ const BatteryStack = ({ capacity }) => {
   );
 };
 
-const describe = ({ solarPanels, batteries, radiators }) => {
+// Landing stage (lander designs only), hung under the service module in place of the aft
+// bulkhead: a fuel tank whose length grows with the fuel, one engine and two splayed legs
+// (the other two are hidden behind the tank in this side view).
+const LANDER_TANK = { half: 38, minHeight: 24, heightPerT: 2.4, rx: 16 };
+const LANDER_ENGINE = { throatHalf: 6, height: 26, exitHalf: 20 };
+const LEG = { reach: 84, drop: 10, pad: 10 };
+const LANDER_VIEW_HEIGHT =
+  SM_BOTTOM +
+  LANDER_TANK.minHeight +
+  LANDER_FUEL_RANGE_T.max * LANDER_TANK.heightPerT +
+  LANDER_ENGINE.height +
+  LEG.drop +
+  30;
+
+const LandingStage = ({ fuel }) => {
+  const height = LANDER_TANK.minHeight + fuel * LANDER_TANK.heightPerT;
+  const bottom = SM_BOTTOM + height;
+  const exit = bottom + LANDER_ENGINE.height;
+  const foot = exit + LEG.drop;
+
+  return (
+    <g>
+      <rect
+        className="rd-outline"
+        x={CX - LANDER_TANK.half}
+        y={SM_BOTTOM}
+        width={LANDER_TANK.half * 2}
+        height={height}
+        rx={Math.min(LANDER_TANK.rx, height / 2)}
+      />
+      <path
+        className="rd-outline"
+        d={`M ${CX - LANDER_ENGINE.throatHalf} ${bottom}
+            Q ${CX - LANDER_ENGINE.throatHalf - 2} ${bottom + LANDER_ENGINE.height / 2}
+              ${CX - LANDER_ENGINE.exitHalf} ${exit}
+            L ${CX + LANDER_ENGINE.exitHalf} ${exit}
+            Q ${CX + LANDER_ENGINE.throatHalf + 2} ${bottom + LANDER_ENGINE.height / 2}
+              ${CX + LANDER_ENGINE.throatHalf} ${bottom} Z`}
+      />
+      {[-1, 1].map((side) => {
+        const topX = CX + side * LANDER_TANK.half;
+        const topY = SM_BOTTOM + height * 0.3;
+        const footX = CX + side * LEG.reach;
+        return (
+          <g key={side}>
+            <line className="rd-outline" x1={topX} y1={topY} x2={footX} y2={foot} />
+            {/* Strut from the bottom of the tank to the middle of the leg. */}
+            <line
+              className="rd-outline"
+              x1={CX + side * (LANDER_TANK.half - 8)}
+              y1={bottom - 4}
+              x2={(topX + footX) / 2}
+              y2={(topY + foot) / 2}
+            />
+            <line className="rd-outline" x1={footX - LEG.pad} x2={footX + LEG.pad} y1={foot} y2={foot} />
+          </g>
+        );
+      })}
+    </g>
+  );
+};
+
+const describe = ({ solarPanels, batteries, radiators, landerFuel }) => {
   const fitted = [
     solarPanels && `${solarPanels} solar panels`,
     batteries && `${batteries} batteries`,
     radiators && `${radiators} radiators`,
   ].filter(Boolean);
-  return `Blueprint outline of the command pod and service module${
+  const vehicle = landerFuel === undefined ? "" : " on a landing stage";
+  return `Blueprint outline of the command pod and service module${vehicle}${
     fitted.length ? ` with ${fitted.join(", ")}` : ""
   }`;
 };
 
 const SpacecraftDiagram = ({ design }) => {
-  const { solarPanels, batteries, radiators, rcsFuel } = design;
+  const { solarPanels, batteries, radiators, rcsFuel, landerFuel } = design;
+  const lander = landerFuel !== undefined;
   const tankR = rcsFuel > 0 ? tankRadius(rcsFuel) : 0;
+  // A lander is drawn taller, sized for a full tank so the scale doesn't shift as fuel changes.
+  const viewHeight = lander ? LANDER_VIEW_HEIGHT : VIEW_HEIGHT;
 
   return (
     <svg
       className="spacecraft-diagram"
-      viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+      viewBox={`0 0 ${VIEW_WIDTH} ${viewHeight}`}
       role="img"
       aria-label={describe(design)}
     >
@@ -179,14 +246,14 @@ const SpacecraftDiagram = ({ design }) => {
         </pattern>
       </defs>
 
-      <rect width={VIEW_WIDTH} height={VIEW_HEIGHT} fill="url(#sd-grid)" />
+      <rect width={VIEW_WIDTH} height={viewHeight} fill="url(#sd-grid)" />
 
       <line
         className="rd-center"
         x1={CX}
         x2={CX}
         y1={TUNNEL.top - 14}
-        y2={SM_BOTTOM + AFT.height + 14}
+        y2={lander ? viewHeight - 16 : SM_BOTTOM + AFT.height + 14}
       />
 
       {/* Command pod */}
@@ -220,11 +287,15 @@ const SpacecraftDiagram = ({ design }) => {
 
       {/* Service module */}
       <rect className="rd-outline" x={CX - SM.half} y={SM.top} width={SM.half * 2} height={SM.height} />
-      <path
-        className="rd-outline"
-        d={`M ${CX - SM.half} ${SM_BOTTOM} L ${CX + SM.half} ${SM_BOTTOM}
-            L ${CX + AFT.half} ${SM_BOTTOM + AFT.height} L ${CX - AFT.half} ${SM_BOTTOM + AFT.height} Z`}
-      />
+      {lander ? (
+        <LandingStage fuel={landerFuel} />
+      ) : (
+        <path
+          className="rd-outline"
+          d={`M ${CX - SM.half} ${SM_BOTTOM} L ${CX + SM.half} ${SM_BOTTOM}
+              L ${CX + AFT.half} ${SM_BOTTOM + AFT.height} L ${CX - AFT.half} ${SM_BOTTOM + AFT.height} Z`}
+        />
+      )}
 
       {tankR > 0 &&
         [-1, 1].map((side) => (

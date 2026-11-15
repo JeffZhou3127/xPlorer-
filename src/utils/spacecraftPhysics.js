@@ -52,38 +52,83 @@ const RCS_COST_PER_KG = 0.002; // $M, fuel and tankage
 // Enough to rendezvous and dock with the refueling station and hold attitude on the way.
 export const RCS_DELTA_V_TARGET = 30;
 
-// `design` is { solarPanels, batteries, radiators, rcsFuel }: each system is a size key.
-export const computeSpacecraftStats = ({ solarPanels, batteries, radiators, rcsFuel }) => {
-  const panels = SOLAR_PANELS[solarPanels];
-  const battery = BATTERIES[batteries];
-  const radiator = RADIATORS[radiators];
+// Mass and cost of the command pod, service module and every system on it, in the order the
+// stats panel lists them. `design` is { solarPanels, batteries, radiators, rcsFuel }.
+export const spacecraftParts = ({ solarPanels, batteries, radiators, rcsFuel }) => {
   const rcsFuelT = rcsFuel / 1000;
-  const rcsTankMass = rcsFuelT * RCS_TANK_FRACTION;
-
-  // Mass and cost of every part, in the order the stats panel lists them.
-  const parts = [
+  return [
     { name: "Command pod", ...COMMAND_POD },
     { name: "Service module", ...SERVICE_MODULE },
-    { name: "Solar panels", mass: panels.mass, cost: panels.cost },
-    { name: "Batteries", mass: battery.mass, cost: battery.cost },
-    { name: "Radiators", mass: radiator.mass, cost: radiator.cost },
-    { name: "RCS", mass: rcsFuelT + rcsTankMass, cost: rcsFuel * RCS_COST_PER_KG },
+    { name: "Solar panels", mass: SOLAR_PANELS[solarPanels].mass, cost: SOLAR_PANELS[solarPanels].cost },
+    { name: "Batteries", mass: BATTERIES[batteries].mass, cost: BATTERIES[batteries].cost },
+    { name: "Radiators", mass: RADIATORS[radiators].mass, cost: RADIATORS[radiators].cost },
+    { name: "RCS", mass: rcsFuelT * (1 + RCS_TANK_FRACTION), cost: rcsFuel * RCS_COST_PER_KG },
   ];
+};
 
-  const totalMass = parts.reduce((sum, part) => sum + part.mass, 0);
-  const totalCost = parts.reduce((sum, part) => sum + part.cost, 0);
-  const solarEarth = panels.power;
+export const sumOf = (parts, key) => parts.reduce((sum, part) => sum + part[key], 0);
+
+// Rocket equation for the RCS burning all its fuel.
+export const rcsDeltaV = (totalMass, rcsFuel) =>
+  RCS_ISP * G0 * Math.log(totalMass / (totalMass - rcsFuel / 1000));
+
+// Requirements every crewed vehicle shares, for the stats panel's meters.
+export const batteryRequirement = (capacity) => ({
+  label: "Battery backup",
+  info: "batteryBackup",
+  value: capacity,
+  target: BATTERY_TARGET_KWH,
+  unit: "kWh",
+  digits: 0,
+  note: `Enough to run the spacecraft for ${BATTERY_BACKUP_HOURS} hours without sunlight.`,
+});
+
+export const heatRequirement = (rejection) => ({
+  label: "Heat rejection",
+  info: "heatRejection",
+  value: rejection,
+  target: HEAT_LOAD_KW,
+  unit: "kW",
+});
+
+export const computeSpacecraftStats = (design) => {
+  const parts = spacecraftParts(design);
+  const totalMass = sumOf(parts, "mass");
+  const solarEarth = SOLAR_PANELS[design.solarPanels].power;
+  const solarMars = solarEarth * MARS_SOLAR_FACTOR;
+  const batteryCapacity = BATTERIES[design.batteries].capacity;
+  const heatRejection = RADIATORS[design.radiators].rejection;
+  const rcs = rcsDeltaV(totalMass, design.rcsFuel);
 
   return {
     parts,
     totalMass,
-    dryMass: totalMass - rcsFuelT,
-    totalCost,
+    dryMass: totalMass - design.rcsFuel / 1000,
+    totalCost: sumOf(parts, "cost"),
     solarEarth,
-    solarMars: solarEarth * MARS_SOLAR_FACTOR,
-    batteryCapacity: battery.capacity,
-    heatRejection: radiator.rejection,
-    // Rocket equation for the RCS burning all its fuel.
-    rcsDeltaV: RCS_ISP * G0 * Math.log(totalMass / (totalMass - rcsFuelT)),
+    solarMars,
+    batteryCapacity,
+    heatRejection,
+    rcsDeltaV: rcs,
+    requirements: [
+      {
+        label: "Power at Mars",
+        info: "powerAtMars",
+        value: solarMars,
+        target: POWER_DEMAND_KW,
+        unit: "kW",
+      },
+      batteryRequirement(batteryCapacity),
+      heatRequirement(heatRejection),
+      {
+        label: "RCS Δv",
+        info: "rcsDeltaV",
+        value: rcs,
+        target: RCS_DELTA_V_TARGET,
+        unit: "m/s",
+        digits: 0,
+        note: "Enough to dock with the refueling station and hold attitude on the way.",
+      },
+    ],
   };
 };

@@ -8,11 +8,13 @@ import PhaseGoal from "../../components/PhaseGoal/PhaseGoal.jsx";
 import CruiseStats from "../../components/CruiseStats/CruiseStats.jsx";
 import FuelGauges from "../../components/FuelGauges/FuelGauges.jsx";
 import TransferView from "../../components/TransferView/TransferView.jsx";
+import { marsTransferScene, planetPhaseLines } from "../../components/TransferView/transferScene.js";
+import useCoast from "../../hooks/useCoast.js";
 import { selectRocket } from "../../store/rocketSlice.js";
 import { selectSpacecraftDesign, selectSpacecraftMass } from "../../store/spacecraftSlice.js";
 import { format } from "../../utils/format.js";
 import { HEAT_LOAD_KW, POWER_DEMAND_KW, computeSpacecraftStats } from "../../utils/spacecraftPhysics.js";
-import { CABIN_MAX_C, CABIN_NOMINAL_C, cruiseTimeline, systemsAt } from "../../utils/cruiseSystems.js";
+import { CABIN_MAX_C, CABIN_NOMINAL_C, cruiseTimeline, planetCourse, systemsAt } from "../../utils/cruiseSystems.js";
 import {
   ANGLE_RANGE,
   AU,
@@ -26,6 +28,7 @@ import {
   burnPropellant,
   escapeBurn,
   originName,
+  planetAt,
   positionAt,
   stageDeltaV,
   targetAt,
@@ -41,6 +44,9 @@ const COAST_PAST_CLOSEST = 15 * DAY;
 const DEFAULT_ANGLE = 0;
 const DEFAULT_BURN = 0;
 
+// Days of the planned path drawn past the closest approach to the target planet.
+const PLANNED_TAIL_DAYS = 40;
+
 const millionKm = (m) => m / 1e9;
 
 // The two transfers this view flies: `transfer` is the leg from marsTransfer.js, `path`
@@ -48,25 +54,6 @@ const millionKm = (m) => m / 1e9;
 const LEGS = {
   outbound: { transfer: TO_MARS, title: "Trans-Mars injection", path: "/m1-s8", next: "/m1-s9" },
   return: { transfer: TO_EARTH, title: "Trans-Earth injection", path: "/m1-s13", next: "/m1-s14" },
-};
-
-// Seconds since the burn, advancing once `running` until `until`.
-const useCoast = (running, until) => {
-  const [time, setTime] = useState(0);
-  useEffect(() => {
-    if (!running) return undefined;
-    let frame;
-    let last = performance.now();
-    const tick = (now) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      setTime((t) => Math.min(until, t + dt * DAYS_PER_SECOND * DAY));
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [running, until]);
-  return [time, setTime];
 };
 
 // Mission 1, steps 8 and 13: an ejection burn between the planets. `leg` picks which:
@@ -110,11 +97,15 @@ const M1S8A13 = ({ leg: legName = "outbound" }) => {
   const closest = path?.closest ?? null;
   const coastEnd = closest ? Math.min(MAX_DAYS * DAY, closest.t + COAST_PAST_CLOSEST) : 0;
   const timeline = useMemo(
-    () => (launched && path ? cruiseTimeline(leg, path, spacecraft, rcsStart, coastEnd) : null),
+    () => (launched && path ? cruiseTimeline(planetCourse(leg, path), spacecraft, rcsStart, coastEnd) : null),
     [leg, launched, path, spacecraft, rcsStart, coastEnd],
   );
   const failure = timeline?.failure ?? null;
-  const [time, setTime] = useCoast(launched, failure ? Math.min(coastEnd, failure.time) : coastEnd);
+  const [time, setTime] = useCoast(
+    launched,
+    failure ? Math.min(coastEnd, failure.time) : coastEnd,
+    DAYS_PER_SECOND * DAY,
+  );
   const arrived = launched && closest !== null && time >= closest.t;
   const encounter = closest !== null && closest.distance <= leg.encounterDistance;
 
@@ -138,6 +129,19 @@ const M1S8A13 = ({ leg: legName = "outbound" }) => {
       };
   const craft = launched && path ? positionAt(path.points, time) : null;
   const targetNow = targetAt(leg, time);
+  // What the transfer view draws: the scene and phase marks for this leg, and the bodies now.
+  const scene = useMemo(() => marsTransferScene(leg), [leg]);
+  const phase = useMemo(() => planetPhaseLines(leg), [leg]);
+  const showClosest = closest !== null && !arrived;
+  const bodies = {
+    sun: { x: 0, y: 0 },
+    earth: planetAt(leg, "earth", time),
+    mars: planetAt(leg, "mars", time),
+    craft,
+    ghost: showClosest ? closest.target : null,
+    closest: showClosest ? closest.at : null,
+  };
+  const phaseText = `${target} ${leg.phaseAngle < 0 ? "trails" : "leads"} ${origin} by ${Math.abs(leg.phaseAngle)}°`;
   const limits = {
     demand: POWER_DEMAND_KW,
     batteryCapacity: spacecraft.batteryCapacity,
@@ -248,10 +252,14 @@ const M1S8A13 = ({ leg: legName = "outbound" }) => {
       }
       right={
         <TransferView
-          leg={leg}
+          scene={scene}
           path={path}
+          tail={PLANNED_TAIL_DAYS * DAY}
           launched={launched}
           time={time}
+          bodies={bodies}
+          phase={phase}
+          readout={launched ? `Day ${Math.floor(time / DAY)}` : phaseText}
           aside={
             <FuelGauges
               title="Systems"

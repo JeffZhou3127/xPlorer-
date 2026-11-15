@@ -122,6 +122,24 @@ export const GLOSSARY = {
     term: "Part cost",
     text: "What this part of the spacecraft costs to build. The crewed command pod is by far the most expensive part, because it has to keep people alive and survive re-entry.",
   },
+
+  // Lander designer (mission 2)
+  landerFuel: {
+    term: "Lander fuel",
+    text: "Propellant for the landing stage's engine. The same tank feeds the landing, the liftoff and the burn home, so the lander's Δv has to cover all three. More fuel means more Δv, but also more mass for the rocket to lift.",
+  },
+  lunarLanding: {
+    term: "Landing burn",
+    text: "Slowing from lunar orbit to a gentle touchdown. The Moon has no air to brake against, so the engine has to cancel all of the orbital speed, plus a little extra to hover while picking a landing spot.",
+  },
+  lunarLiftoff: {
+    term: "Liftoff burn",
+    text: "Climbing from the Moon's surface back up to lunar orbit. It takes about as much Δv as the landing, because the lander has to build up all of its orbital speed again.",
+  },
+  transEarthInjection: {
+    term: "Moon to Earth ejection",
+    text: "A burn in lunar orbit that speeds the lander up enough to escape the Moon's gravity and fall back toward Earth.",
+  },
   velocity: {
     term: "Velocity",
     text: "How fast the rocket is moving overall. To stay in a low orbit you need about 7,700 m/s of it, almost all horizontal.",
@@ -211,11 +229,15 @@ export const GLOSSARY = {
   // Ejection burns
   ejectionBurn: {
     term: "Ejection burn",
-    text: "The engine burn that throws the spacecraft out of a planet's orbit and onto a path around the Sun toward the next planet. It is made at the lowest point of the orbit, where the spacecraft is fastest, because a burn there adds the most energy (the Oberth effect).",
+    text: "The engine burn that throws the spacecraft out of its parking orbit toward its target: onto a path around the Sun toward the next planet, or out to the Moon. It is made at the lowest point of the orbit, where the spacecraft is fastest, because a burn there adds the most energy (the Oberth effect).",
   },
   burnAngle: {
     term: "Burn angle",
-    text: "Which way the spacecraft leaves the planet, compared with the planet's own motion around the Sun. Leaving along it adds to the planet's speed and carries you outward (toward Mars); leaving against it subtracts and drops you inward (toward Earth). Small angles fine-tune where you cross the target's orbit.",
+    text: "Which way the spacecraft leaves the planet, compared with the planet's own motion around the Sun. Leaving along it adds to the planet's speed and carries you outward (toward Mars); leaving against it subtracts and drops you inward (toward Earth). Small angles fine-tune where you cross the target's orbit. On the way to the Moon it is measured from the spacecraft's own direction of travel around Earth instead.",
+  },
+  moonPhaseAngle: {
+    term: "Moon angle",
+    text: "How far ahead of the spacecraft the Moon is around Earth at the moment of the burn. The spacecraft takes a few days to climb out to the Moon's distance, and the Moon keeps moving meanwhile, so it has to be well ahead at the burn: the burn aims at where the Moon will be, not where it is.",
   },
   burnDeltaV: {
     term: "Burn Δv",

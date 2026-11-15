@@ -1,5 +1,5 @@
 import { Meter, Stat } from "../RocketStats/RocketStats.jsx";
-import { format } from "../../utils/format.js";
+import { format, formatDistance } from "../../utils/format.js";
 import "../RocketStats/RocketStats.css";
 import "../FlightStats/FlightStats.css";
 import "./CruiseStats.css";
@@ -14,11 +14,11 @@ const Group = ({ title, meter, status, alert, children }) => (
   </section>
 );
 
-// The spacecraft's systems on the way to Mars or back to Earth, under the burn controls
+// The spacecraft's systems on the way to Mars or back to Earth, or out to the Moon, under the burn controls
 // (same look as FlightStats). `systems` is the state now ({ au, solar (kW), battery (kWh),
 // temperature (°C), rcs (m/s) }, from systemsAt), `limits` what it is judged against
 // ({ demand (kW), batteryCapacity (kWh), heatLoad, heatRejection (kW), cabinNominal,
-// cabinMax (°C), rcsStart (m/s) }), plus the day and the distance to `target` ("Mars" or "Earth", m).
+// cabinMax (°C), rcsStart (m/s) }), plus the day and the distance to `target` ("Mars", "Earth" or "Moon", m).
 const CruiseStats = ({ day, target = "Mars", targetDistance, systems, limits }) => {
   const { au, solar, battery, temperature, rcs } = systems;
   const surplus = solar - limits.demand;
@@ -44,8 +44,8 @@ const CruiseStats = ({ day, target = "Mars", targetDistance, systems, limits }) 
           <Stat label="From the Sun" info="au" value={format(au, 3)} unit="AU" />
           <Stat
             label={`To ${target}`}
-            value={targetDistance === null ? "—" : format(targetDistance / 1e9, 1)}
-            unit="million km"
+            value={targetDistance === null ? "—" : formatDistance(targetDistance)}
+            unit=""
           />
           <Stat label="Sunlight" info="sunlight" value={format(100 / (au * au))} unit="% of Earth's" />
         </dl>

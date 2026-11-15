@@ -13,6 +13,11 @@ import M1S9 from "./views/scenario1/M1S9.jsx";
 import M1S10 from "./views/scenario1/M1S10.jsx";
 import M1S14 from "./views/scenario1/M1S14.jsx";
 import MissionFailure from "./views/scenario1/MissionFailure.jsx";
+import Scenario2 from "./views/scenario2/Scenario2.jsx";
+import M2S1 from "./views/scenario2/M2S1.jsx";
+import M2S2 from "./views/scenario2/M2S2.jsx";
+import M2S3 from "./views/scenario2/M2S3.jsx";
+import M2S4 from "./views/scenario2/M2S4.jsx";
 
 const App = () => {
   return (
@@ -36,6 +41,11 @@ const App = () => {
       <Route path="/m1-s13" element={<M1S8A13 key="return" leg="return" />} />
       <Route path="/m1-s14" element={<M1S14 />} />
       <Route path="/mission-failure" element={<MissionFailure />} />
+      <Route path="/scenario2" element={<Scenario2 />} />
+      <Route path="/m2-s1" element={<M2S1 />} />
+      <Route path="/m2-s2" element={<M2S2 />} />
+      <Route path="/m2-s3" element={<M2S3 />} />
+      <Route path="/m2-s4" element={<M2S4 />} />
     </Routes>
   );
 };
