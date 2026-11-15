@@ -1,7 +1,9 @@
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./FailureReport.css";
 
 // Centred red panel for a failed mission: the "Mission Failed!" header, what went wrong
-// (`reason`, `detail`), a short `summary` of the flight ([{ label, value }]), a `tip`,
+// (`reason`, `detail`), a short `summary` of the flight ([{ label, value, info }], `info` an
+// optional glossary key for a "?"), a `tip`,
 // and buttons to retry and to go back and redesign (`retryLabel`, `redesignLabel`; by
 // default the launch and the rocket).
 const FailureReport = ({
@@ -27,9 +29,12 @@ const FailureReport = ({
 
       {summary.length > 0 && (
         <dl className="failure-report__summary">
-          {summary.map(({ label, value }) => (
+          {summary.map(({ label, value, info }) => (
             <div key={label} className="failure-report__stat">
-              <dt>{label}</dt>
+              <dt>
+                {label}
+                {info && <Info topic={info} />}
+              </dt>
               <dd>{value}</dd>
             </div>
           ))}

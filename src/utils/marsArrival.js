@@ -11,7 +11,7 @@ import { MARS } from "./flightSim.js";
 export const PERIAPSIS_ALTITUDE_KM = 1000;
 // The view opens this high up on the way in.
 export const START_ALTITUDE_KM = 10000;
-// Arrival speed relative to Mars when M1S8 doesn't pass one (about a Hohmann transfer's).
+// Arrival speed relative to Mars when M1S8A13 doesn't pass one (about a Hohmann transfer's).
 export const DEFAULT_V_INF = 2650;
 
 // The goal: an orbit of 1,000 × 17,000 km, within these windows.

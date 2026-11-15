@@ -1,3 +1,4 @@
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./RcsControls.css";
 
 // Pad layouts on a 3 × 3 grid: each button is { args, glyph, label, key, shortcut, row,
@@ -21,9 +22,12 @@ const ROTATE = [
   { args: ["roll", 1], glyph: "↻", label: "Roll right", key: "X", shortcut: "x", row: 1, col: 3 },
 ];
 
-const Pad = ({ title, buttons, step, disabled, heldKeys, onPress }) => (
+const Pad = ({ title, info, buttons, step, disabled, heldKeys, onPress }) => (
   <fieldset className="rcs-controls" disabled={disabled}>
-    <legend className="rcs-controls__title">{title}</legend>
+    <legend className="rcs-controls__title">
+      {title}
+      <Info topic={info} />
+    </legend>
     <div className="rcs-controls__pad">
       {buttons.map(({ args, glyph, label, key, shortcut, row, col }) => (
         <button
@@ -57,6 +61,7 @@ const RcsControls = ({ translationStep, rotationStep, disabled, heldKeys, onTran
   <>
     <Pad
       title="Translate"
+      info="rcsTranslation"
       buttons={TRANSLATE}
       step={`${translationStep} m/s`}
       disabled={disabled}
@@ -65,6 +70,7 @@ const RcsControls = ({ translationStep, rotationStep, disabled, heldKeys, onTran
     />
     <Pad
       title="Rotate"
+      info="rcsRotation"
       buttons={ROTATE}
       step={`${rotationStep} °/s`}
       disabled={disabled}

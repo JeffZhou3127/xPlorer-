@@ -14,12 +14,12 @@ const Group = ({ title, meter, status, alert, children }) => (
   </section>
 );
 
-// The spacecraft's systems on the way to Mars, under the burn controls (same look as
-// FlightStats). `systems` is the state now ({ au, solar (kW), battery (kWh), temperature
-// (°C), rcs (m/s) }, from systemsAt), `limits` what it is judged against ({ demand (kW),
-// batteryCapacity (kWh), heatLoad, heatRejection (kW), cabinNominal, cabinMax (°C),
-// rcsStart (m/s) }), plus the day and the distance to Mars (m).
-const CruiseStats = ({ day, marsDistance, systems, limits }) => {
+// The spacecraft's systems on the way to Mars or back to Earth, under the burn controls
+// (same look as FlightStats). `systems` is the state now ({ au, solar (kW), battery (kWh),
+// temperature (°C), rcs (m/s) }, from systemsAt), `limits` what it is judged against
+// ({ demand (kW), batteryCapacity (kWh), heatLoad, heatRejection (kW), cabinNominal,
+// cabinMax (°C), rcsStart (m/s) }), plus the day and the distance to `target` ("Mars" or "Earth", m).
+const CruiseStats = ({ day, target = "Mars", targetDistance, systems, limits }) => {
   const { au, solar, battery, temperature, rcs } = systems;
   const surplus = solar - limits.demand;
   const batteryLow = battery < limits.batteryCapacity * 0.25;
@@ -41,9 +41,13 @@ const CruiseStats = ({ day, marsDistance, systems, limits }) => {
         <h3 className="flight-stats__group-title">Trip</h3>
         <dl className="flight-stats__grid">
           <Stat label="Day" value={format(day)} unit="" />
-          <Stat label="From the Sun" value={format(au, 3)} unit="AU" />
-          <Stat label="To Mars" value={marsDistance === null ? "—" : format(marsDistance / 1e9, 1)} unit="million km" />
-          <Stat label="Sunlight" value={format(100 / (au * au))} unit="% of Earth's" />
+          <Stat label="From the Sun" info="au" value={format(au, 3)} unit="AU" />
+          <Stat
+            label={`To ${target}`}
+            value={targetDistance === null ? "—" : format(targetDistance / 1e9, 1)}
+            unit="million km"
+          />
+          <Stat label="Sunlight" info="sunlight" value={format(100 / (au * au))} unit="% of Earth's" />
         </dl>
       </section>
 
@@ -53,9 +57,9 @@ const CruiseStats = ({ day, marsDistance, systems, limits }) => {
         alert={batteryLow || surplus < 0}
         status={powerStatus}
       >
-        <Stat label="Solar output" value={format(solar, 2)} unit="kW" />
-        <Stat label="Demand" value={format(limits.demand, 1)} unit="kW" />
-        <Stat label="Battery" value={`${format(battery, 1)} / ${format(limits.batteryCapacity)}`} unit="kWh" />
+        <Stat label="Solar output" info="solarOutput" value={format(solar, 2)} unit="kW" />
+        <Stat label="Demand" info="powerDemand" value={format(limits.demand, 1)} unit="kW" />
+        <Stat label="Battery" info="batteries" value={`${format(battery, 1)} / ${format(limits.batteryCapacity)}`} unit="kWh" />
       </Group>
 
       <Group
@@ -69,8 +73,8 @@ const CruiseStats = ({ day, marsDistance, systems, limits }) => {
         }
       >
         <Stat label="Cabin" value={format(temperature, 1)} unit="°C" />
-        <Stat label="Heat load" value={format(limits.heatLoad, 1)} unit="kW" />
-        <Stat label="Radiators" value={format(limits.heatRejection, 1)} unit="kW" />
+        <Stat label="Heat load" info="heatLoad" value={format(limits.heatLoad, 1)} unit="kW" />
+        <Stat label="Radiators" info="heatRejection" value={format(limits.heatRejection, 1)} unit="kW" />
       </Group>
 
       <Group
@@ -79,8 +83,8 @@ const CruiseStats = ({ day, marsDistance, systems, limits }) => {
         alert={rcsLow}
         status={rcsLow ? "RCS running low: attitude trims are using the last of it." : "Small trims keep the panels pointed at the Sun."}
       >
-        <Stat label="Δv left" value={format(rcs, 2)} unit="m/s" />
-        <Stat label="After docking" value={format(limits.rcsStart, 2)} unit="m/s" />
+        <Stat label="Δv left" info="rcsDeltaV" value={format(rcs, 2)} unit="m/s" />
+        <Stat label="At the burn" value={format(limits.rcsStart, 2)} unit="m/s" />
       </Group>
     </div>
   );

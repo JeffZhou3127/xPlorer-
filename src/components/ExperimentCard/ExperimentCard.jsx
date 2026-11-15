@@ -1,12 +1,16 @@
 import { useId } from "react";
 import { RangeField, SelectField } from "../StageCard/StageCard.jsx";
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./ExperimentCard.css";
 
 // The data quality bar, green once it reaches `pass`.
 const QualityBar = ({ quality, pass }) => (
   <div className="experiment-card__quality">
     <div className="experiment-card__quality-row">
-      <span>Data quality</span>
+      <span>
+        Data quality
+        <Info topic="dataQuality" />
+      </span>
       <strong>{quality}%</strong>
     </div>
     <div
@@ -59,6 +63,7 @@ const ExperimentCard = ({ number, experiment, values, onChange, onRun, running, 
             <SelectField
               key={param.key}
               label={param.label}
+              info={param.info}
               value={values[param.key]}
               options={param.options}
               onChange={(v) => onChange(param.key, v)}
@@ -68,6 +73,7 @@ const ExperimentCard = ({ number, experiment, values, onChange, onRun, running, 
               key={param.key}
               label={`${param.label} (${param.unit}, ${param.min}–${param.max})`}
               ariaLabel={`${title}: ${param.label} in ${param.unit}`}
+              info={param.info}
               min={param.min}
               max={param.max}
               value={values[param.key]}

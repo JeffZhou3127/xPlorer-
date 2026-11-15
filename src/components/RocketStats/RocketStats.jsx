@@ -4,9 +4,8 @@ import {
   ORBIT_ALTITUDE_KM,
   ORBIT_DELTA_V,
 } from "../../utils/rocketPhysics.js";
-import { GLOSSARY } from "../../utils/glossary.js";
 import { format, money } from "../../utils/format.js";
-import InfoTip from "../InfoTip/InfoTip.jsx";
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./RocketStats.css";
 
 // Progress bar toward a target; turns red when `alert` is set.
@@ -26,9 +25,7 @@ export const Meter = ({ label, value, max, alert = false }) => (
   </div>
 );
 
-export const Info = ({ topic }) => (
-  <InfoTip term={GLOSSARY[topic].term}>{GLOSSARY[topic].text}</InfoTip>
-);
+export { Info };
 
 export const Stat = ({ label, info, value, unit }) => (
   <div className="rocket-stats__stat">

@@ -58,12 +58,12 @@ const FlightStats = ({ readouts, drag, pitch, pitchRate, throttle, stageNumber }
       </Group>
 
       <Group title="Vehicle">
-        <Stat label="Pitch" value={signed(pitch)} unit="°" />
-        <Stat label="Pitch rate" value={signed(pitchRate)} unit="°/s" />
+        <Stat label="Pitch" info="pitch" value={signed(pitch)} unit="°" />
+        <Stat label="Pitch rate" info="pitchRate" value={signed(pitchRate)} unit="°/s" />
         {throttle === null ? (
-          <Stat label="Throttle" value="Off" unit="" />
+          <Stat label="Throttle" info="throttle" value="Off" unit="" />
         ) : (
-          <Stat label="Throttle" value={throttle} unit="%" />
+          <Stat label="Throttle" info="throttle" value={throttle} unit="%" />
         )}
         <Stat label="Active stage" value={stageNumber} unit="" />
       </Group>

@@ -1,0 +1,63 @@
+/* Over everything but the mission clock (z-index 100). */
+.radio-blackout {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 2rem 2rem 9rem;
+  background: #000;
+  animation: radio-blackout-flicker 1.6s steps(1, end) both;
+}
+
+/* A few flickers of the screen underneath before it stays black. */
+@keyframes radio-blackout-flicker {
+  0% { opacity: 0.85; }
+  8% { opacity: 0; }
+  16% { opacity: 1; }
+  26% { opacity: 0.1; }
+  34% { opacity: 0.9; }
+  46% { opacity: 0; }
+  52% { opacity: 1; }
+  64% { opacity: 0.3; }
+  72% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.radio-blackout__content {
+  width: min(34rem, 100%);
+  text-align: center;
+  opacity: 0;
+  animation: radio-blackout-text 0.8s ease-out 1.8s forwards;
+}
+
+@keyframes radio-blackout-text {
+  to { opacity: 1; }
+}
+
+.radio-blackout__title {
+  margin: 0 0 1rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+
+.radio-blackout__text p {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #6e7681;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radio-blackout {
+    animation: none;
+  }
+
+  .radio-blackout__content {
+    animation-delay: 0s;
+  }
+}

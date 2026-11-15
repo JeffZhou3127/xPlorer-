@@ -1,0 +1,41 @@
+/* In the right pane under the view, so no divider above it. */
+.reentry-stats {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
+.reentry-stats__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.reentry-stats__section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #8b949e;
+}
+
+.reentry-stats__temp {
+  font-variant-numeric: tabular-nums;
+  color: #e6edf3;
+}
+
+.reentry-stats__peak {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  color: #8b949e;
+}
+
+.reentry-stats__note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+/* The meters change every frame; a width transition would only make them lag. */
+.reentry-stats .rocket-stats__bar-fill {
+  transition: none;
+}

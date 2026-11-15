@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { format } from "../../utils/format.js";
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./PitchControl.css";
 
 // Describes a signed rate, e.g. "2.5°/s right" or "Holding".
@@ -18,12 +19,18 @@ const PitchControl = ({ rate, maxRate, onChange }) => {
 
   return (
     <fieldset className="pitch-control">
-      <legend className="pitch-control__title">Pitch control</legend>
+      <legend className="pitch-control__title">
+        Pitch control
+        <Info topic="pitch" />
+      </legend>
 
       <div className="pitch-control__label-row">
-        <label className="pitch-control__label" htmlFor={id}>
-          Pitch rate
-        </label>
+        <span>
+          <label className="pitch-control__label" htmlFor={id}>
+            Pitch rate
+          </label>
+          <Info topic="pitchRate" />
+        </span>
         <output className="pitch-control__readout" htmlFor={id}>
           {describeRate(rate)}
         </output>

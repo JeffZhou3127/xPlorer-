@@ -17,6 +17,12 @@ import {
 
 const tonnes = (t) => `${t.toFixed(1)} t`;
 
+// The two refuelings this view runs: the panel title and where Undock leads.
+const LEGS = {
+  outbound: { title: "Refueling", next: "/m1-s8" },
+  return: { title: "Refueling at Mars", next: "/m1-s13" },
+};
+
 // Real seconds since the page opened, per animation frame, stopping at `until`.
 const useElapsed = (until) => {
   const [elapsed, setElapsed] = useState(0);
@@ -34,11 +40,14 @@ const useElapsed = (until) => {
   return elapsed;
 };
 
-// Mission 1, step 7: refueling, reached from M1S6's Continue once docked. The rocket's
-// remaining stages (passed along from the flight as route state) are filled from the
-// depot, top stage first. Left: the spacecraft's stage gauges; centre: the docked stack;
-// right: the depot's gauge. Undock (to M1S8) appears once the transfer is complete.
-const M1S7 = () => {
+// Mission 1, steps 7 and 12: refueling, reached from the docking view's Continue once
+// docked. `leg` picks which: "outbound" (step 7, /m1-s7, Undock to the Mars ejection burn
+// /m1-s8) or "return" (step 12, /m1-s12, at the Mars depot, Undock to the burn home
+// /m1-s13). The rocket's remaining stages (passed along as route state) are filled from
+// the depot, top stage first. Left: the spacecraft's stage gauges; centre: the docked
+// stack; right: the depot's gauge. Undock appears once the transfer is complete.
+const M1S7A12 = ({ leg = "outbound" }) => {
+  const { title, next } = LEGS[leg];
   const navigate = useNavigate();
   // { flight, rcsUsed } from docking, passed on to the ejection burn.
   const { state } = useLocation();
@@ -64,9 +73,9 @@ const M1S7 = () => {
 
   return (
     <RefuelPanel
-      title="Refueling"
+      title={title}
       status={status}
-      action={done ? { label: "Undock", onClick: () => navigate("/m1-s8", { state }) } : null}
+      action={done ? { label: "Undock", onClick: () => navigate(next, { state }) } : null}
       left={
         <FuelGauges
           title="Spacecraft"
@@ -81,6 +90,7 @@ const M1S7 = () => {
       right={
         <FuelGauges
           title="Depot"
+          info="depot"
           gauges={[
             {
               key: "depot",
@@ -102,4 +112,4 @@ const M1S7 = () => {
   );
 };
 
-export default M1S7;
+export default M1S7A12;

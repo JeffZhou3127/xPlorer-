@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadX3dom, shutdownX3dom } from "../TrajectoryView/x3domLoader.js";
 import { lineSet, pointString } from "../TrajectoryView/trajectoryScene.js";
-import { DAY, PHASE_ANGLE, earthAt, marsAt, positionAt } from "../../utils/marsTransfer.js";
+import { DAY, originName, planetAt, positionAt, targetName } from "../../utils/marsTransfer.js";
 import { MARKER_SIZES, sceneMarkup, toScene } from "./transferScene.js";
 import "./TransferView.css";
 
@@ -24,14 +24,15 @@ const cameraPosition = (host) => {
   }
 };
 
-// 3D view of the Earth–Mars transfer, drawn with X3DOM like the flight panel's trajectory
-// view (NASA mission-viz style): the Sun, Earth's and Mars's orbits, the planets `time` s
-// after the burn, the 44° phase angle between them (before the burn), the path the burn
-// would fly (amber, `path` from transferPath, with its closest approach and where Mars
-// will be then), and once `launched`, the path flown (cyan) and the spacecraft.
+// 3D view of the transfer on `leg` (TO_MARS or TO_EARTH), drawn with X3DOM like the flight
+// panel's trajectory view (NASA mission-viz style): the Sun, Earth's and Mars's orbits, the
+// planets `time` s after the burn, the phase angle between them (before the burn), the path
+// the burn would fly (amber, `path` from transferPath, with its closest approach and where
+// the target planet will be then), and once `launched`, the path flown (cyan) and the
+// spacecraft.
 // `aside` (optional) floats over the right edge, e.g. system gauges.
 // Drag to orbit, scroll or right-drag to zoom.
-const TransferView = ({ path, launched, time, aside }) => {
+const TransferView = ({ leg, path, launched, time, aside }) => {
   const hostRef = useRef(null);
   const partsRef = useRef(null);
   const drawnRef = useRef({ path: undefined, positions: {} });
@@ -42,7 +43,7 @@ const TransferView = ({ path, launched, time, aside }) => {
     const host = hostRef.current;
     let cancelled = false;
 
-    host.innerHTML = sceneMarkup();
+    host.innerHTML = sceneMarkup(leg);
     const x3dElement = host.querySelector("x3d");
     const find = (selector) => host.querySelector(selector);
     const lineParts = (part) => ({
@@ -74,7 +75,8 @@ const TransferView = ({ path, launched, time, aside }) => {
       partsRef.current = null;
       host.innerHTML = "";
     };
-  }, []);
+    // `leg` is a module constant (TO_MARS or TO_EARTH), so the scene is built once.
+  }, [leg]);
 
   // Push the bodies and paths into the scene after every render.
   useEffect(() => {
@@ -104,10 +106,10 @@ const TransferView = ({ path, launched, time, aside }) => {
     // Bodies; null hides one.
     const positions = {
       sun: SUN,
-      earth: toScene(earthAt(time)),
-      mars: toScene(marsAt(time)),
+      earth: toScene(planetAt(leg, "earth", time)),
+      mars: toScene(planetAt(leg, "mars", time)),
       craft,
-      ghost: closest && !arrived ? toScene(closest.mars) : null,
+      ghost: closest && !arrived ? toScene(closest.target) : null,
       closest: closest && !arrived ? toScene(closest.at) : null,
     };
     for (const [part, at] of Object.entries(positions)) {
@@ -140,6 +142,9 @@ const TransferView = ({ path, launched, time, aside }) => {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  const target = targetName(leg);
+  const phaseText = `${target} ${leg.phaseAngle < 0 ? "trails" : "leads"} ${originName(leg)} by ${Math.abs(leg.phaseAngle)}°`;
+
   const resetView = () => hostRef.current?.querySelector("x3d")?.runtime?.resetView();
 
   return (
@@ -153,7 +158,7 @@ const TransferView = ({ path, launched, time, aside }) => {
 
       <div className="transfer-view__top">
         <p className="transfer-view__readout">
-          {launched ? `Day ${Math.floor(time / DAY)}` : `Mars leads Earth by ${PHASE_ANGLE}°`}
+          {launched ? `Day ${Math.floor(time / DAY)}` : phaseText}
         </p>
         <button type="button" className="transfer-view__button" disabled={status !== "ready"} onClick={resetView}>
           Reset view
@@ -165,7 +170,9 @@ const TransferView = ({ path, launched, time, aside }) => {
         <li className="transfer-view__key transfer-view__key--mars">Mars</li>
         <li className="transfer-view__key transfer-view__key--planned">Planned path</li>
         {launched && <li className="transfer-view__key transfer-view__key--flown">Flown</li>}
-        <li className="transfer-view__key transfer-view__key--ghost">Mars at closest approach</li>
+        <li className={`transfer-view__key transfer-view__key--ghost transfer-view__key--ghost-${leg.to}`}>
+          {target} at closest approach
+        </li>
       </ul>
       {aside && <div className="transfer-view__aside">{aside}</div>}
       <p className="transfer-view__hint">Drag to orbit · scroll to zoom</p>

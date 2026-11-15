@@ -19,10 +19,16 @@ export const ROTATION_STEP = { coarse: 0.2, fine: 0.05 };
 // RCS Δv spent per °/s of turn rate changed (the thrusters fire in opposed pairs).
 const ROTATION_DV_COST = 0.05;
 
-// The approach starts slightly off: a couple of metres off the axis and a few degrees
-// out in every axis, so flying straight forward misses.
-const START_POSITION = { x: 2.4, y: -1.6, z: START_DISTANCE_M };
-const START_ATTITUDE = { roll: 3.5, pitch: -2, yaw: 4 };
+// The approach starts slightly off, by a random amount each time: a couple of metres off
+// the axis and a few degrees out in every axis, so flying straight forward misses.
+const START_OFFSET_M = { min: 1, max: 3 };
+const START_ANGLE_DEG = { min: 1.5, max: 5 };
+
+// A random value between `min` and `max` with a random sign, rounded to a tenth.
+const randomOff = ({ min, max }) => {
+  const value = min + Math.random() * (max - min);
+  return Math.round((Math.random() < 0.5 ? -value : value) * 10) / 10;
+};
 
 // Thrust directions in the spacecraft's axes (forward is −z, toward the depot when aligned).
 export const DIRECTIONS = {
@@ -61,11 +67,16 @@ const rotZ = ({ x, y, z }, a) => {
 export const bodyToWorld = (v, { roll, pitch, yaw }) => rotY(rotX(rotZ(v, rad(-roll)), rad(pitch)), rad(-yaw));
 export const worldToBody = (v, { roll, pitch, yaw }) => rotZ(rotX(rotY(v, rad(yaw)), rad(-pitch)), rad(roll));
 
+// A fresh approach from a random start, with `rcsDeltaV` m/s of RCS to spend.
 export const initialDocking = (rcsDeltaV) => ({
   time: 0,
-  pos: START_POSITION,
+  pos: { x: randomOff(START_OFFSET_M), y: randomOff(START_OFFSET_M), z: START_DISTANCE_M },
   vel: { x: 0, y: 0, z: 0 },
-  attitude: START_ATTITUDE,
+  attitude: {
+    roll: randomOff(START_ANGLE_DEG),
+    pitch: randomOff(START_ANGLE_DEG),
+    yaw: randomOff(START_ANGLE_DEG),
+  },
   rates: { roll: 0, pitch: 0, yaw: 0 },
   rcsDeltaV,
   rcsUsed: 0,

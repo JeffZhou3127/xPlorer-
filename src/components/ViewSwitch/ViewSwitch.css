@@ -34,3 +34,9 @@
   outline: 2px solid #e6edf3;
   outline-offset: 2px;
 }
+
+/* The optional "?" explanation, after the buttons. */
+.view-switch .info-tip {
+  align-self: center;
+  margin: 0 0.5rem;
+}

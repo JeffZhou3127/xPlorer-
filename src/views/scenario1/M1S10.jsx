@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import ScienceBoard from "../../components/ScienceBoard/ScienceBoard.jsx";
 import ExperimentCard from "../../components/ExperimentCard/ExperimentCard.jsx";
 import StepNav from "../../components/StepNav/StepNav.jsx";
@@ -23,9 +23,11 @@ const sameValues = (a, b) => Object.keys(a).every((key) => a[key] === b[key]);
 // Nine experiment cards (models in scienceExperiments.js); each run's result is kept with
 // the settings that produced it, so a card can flag it as stale after a change. An
 // experiment stays complete once any run reaches COMPLETE_QUALITY, and Continue unlocks
-// at REQUIRED_EXPERIMENTS.
+// at REQUIRED_EXPERIMENTS; it leads to the second docking (/m1-s11), with the route state
+// from M1S9 (the stages left and the RCS used) passed along.
 const M1S10 = () => {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [values, setValues] = useState(() =>
     Object.fromEntries(EXPERIMENTS.map(({ id, defaults }) => [id, defaults])),
   );
@@ -90,8 +92,7 @@ const M1S10 = () => {
           );
         })}
       </ScienceBoard>
-      {/* No next step yet: Continue returns home. */}
-      <StepNav onContinue={() => navigate("/")} blockedReason={blockedReason} />
+      <StepNav onContinue={() => navigate("/m1-s11", { state })} blockedReason={blockedReason} />
     </>
   );
 };

@@ -1,4 +1,4 @@
-import { Stat } from "../RocketStats/RocketStats.jsx";
+import { Info, Stat } from "../RocketStats/RocketStats.jsx";
 import { format } from "../../utils/format.js";
 import "../RocketStats/RocketStats.css";
 import "../FlightStats/FlightStats.css";
@@ -10,9 +10,14 @@ const signed = (value, positive, negative) => {
   return `${format(Math.abs(rounded), 2)} ${rounded > 0 ? positive : negative}`;
 };
 
-const Group = ({ title, children }) => (
+const Group = ({ title, info, children }) => (
   <section className="flight-stats__group" aria-label={title}>
-    <h3 className="flight-stats__group-title">{title}</h3>
+    <h3 className="flight-stats__group-title">
+      <span>
+        {title}
+        {info && <Info topic={info} />}
+      </span>
+    </h3>
     <dl className="flight-stats__grid">{children}</dl>
   </section>
 );
@@ -24,15 +29,15 @@ const DockingStats = ({ vel, rcsRemaining, rcsUsed }) => (
   <div className="flight-stats">
     <h2 className="rocket-stats__title">Approach</h2>
 
-    <Group title="Relative velocity">
+    <Group title="Relative velocity" info="relativeVelocity">
       <Stat label="Sideways" value={signed(vel.x, "R", "L")} unit="m/s" />
       <Stat label="Vertical" value={signed(vel.y, "U", "D")} unit="m/s" />
-      <Stat label="Closing" value={format(-vel.z, 2)} unit="m/s" />
+      <Stat label="Closing" info="closingSpeed" value={format(-vel.z, 2)} unit="m/s" />
       <Stat label="Speed" value={format(Math.hypot(vel.x, vel.y, vel.z), 2)} unit="m/s" />
     </Group>
 
     <Group title="RCS">
-      <Stat label="Δv left" value={format(rcsRemaining, 2)} unit="m/s" />
+      <Stat label="Δv left" info="rcsDeltaV" value={format(rcsRemaining, 2)} unit="m/s" />
       <Stat label="Δv used" value={format(rcsUsed, 2)} unit="m/s" />
     </Group>
   </div>

@@ -1,4 +1,4 @@
-// Short explanations shown in the "?" tooltips on the design screen.
+// Short explanations shown in the "?" tooltips (InfoTip / Info), by topic key.
 export const GLOSSARY = {
   fuel: {
     term: "Fuel amount",
@@ -145,5 +145,198 @@ export const GLOSSARY = {
   perigee: {
     term: "Perigee",
     text: "The lowest point of the orbit the rocket would follow if the engines stopped now, ignoring air. It shows \"—\" while that path still hits the ground; once it is above the atmosphere (about 100 km) you are in orbit.",
+  },
+  // Mission objective
+  orbitalMechanics: {
+    term: "Orbital mechanics",
+    text: "How things move under gravity in space. An orbit is falling around a planet while moving sideways fast enough to keep missing it. Speeding up raises the far side of your orbit, slowing down lowers it.",
+  },
+  polarOrbit: {
+    term: "Polar orbit",
+    text: "An orbit that passes over (or near) both poles. As the planet turns underneath, a spacecraft in a polar orbit eventually flies over every part of the surface, which is ideal for mapping and science.",
+  },
+
+  // Flight panel and Mars orbit insertion
+  throttle: {
+    term: "Throttle",
+    text: "How hard the liquid-fuelled engines push, from 0% to 100% of full thrust. Less throttle saves fuel and eases the load on the rocket; shutting down stops thrust completely. Solid boosters (SRBs) can't be throttled.",
+  },
+  pitch: {
+    term: "Pitch",
+    text: "The rocket's tilt away from straight up: 0° points straight up, 90° points along the horizon. A rocket climbs first, then pitches over gradually (a gravity turn) to build the sideways speed an orbit needs.",
+  },
+  pitchRate: {
+    term: "Pitch rate",
+    text: "How fast the rocket is turning, in degrees per second. The control sets this rate, not the angle: hold it off-centre to keep turning, centre it to stop and hold the current tilt.",
+  },
+
+  // Orbit reached
+  circularOrbit: {
+    term: "Circular orbit",
+    text: "An orbit at the same height all the way round: its apogee (highest point) and perigee (lowest point) are equal. Matching a circular orbit makes it easy to meet another spacecraft, like the fuel depot.",
+  },
+  docking: {
+    term: "Docking",
+    text: "Joining two spacecraft in orbit by bringing their docking ports together. It has to be done slowly and precisely: lined up within centimetres and touching at a walking pace or less, or the ports won't latch.",
+  },
+  relativeVelocity: {
+    term: "Relative velocity",
+    text: "How fast you are moving compared with the other spacecraft, not with the planet. Both are going about 7.7 km/s around Earth, but for docking only the small difference between them matters.",
+  },
+
+  // Docking
+  rcsTranslation: {
+    term: "Translation (RCS)",
+    text: "Moving the spacecraft sideways, up and down, or forward and back without turning it. Each press fires the small RCS thrusters in one short pulse, adding a fixed bit of speed. To stop, pulse the opposite way: in space nothing slows you down.",
+  },
+  rcsRotation: {
+    term: "Rotation: pitch, yaw, roll",
+    text: "Turning the spacecraft: pitch tips the nose up or down, yaw swings it left or right, roll spins it around its own axis. Each pulse starts a turn that keeps going until an opposite pulse stops it.",
+  },
+  pulsePrecision: {
+    term: "Pulse precision",
+    text: "How big each RCS pulse is. Coarse pulses change your speed quickly and are good far out; fine pulses are tiny and let you make the last careful corrections close to the port.",
+  },
+  closingSpeed: {
+    term: "Closing speed",
+    text: "How fast the gap to the docking port is shrinking (negative means you are drifting away). Arrive too fast and the ports bounce or get damaged: dock at under 0.2 m/s.",
+  },
+
+  // Refueling
+  depot: {
+    term: "Propellant depot",
+    text: "A fuel station in orbit. Rather than launching all the fuel for the whole trip at once, tankers stock the depot ahead of time, and the spacecraft tops up its stages there through the docking port.",
+  },
+
+  // Ejection burns
+  ejectionBurn: {
+    term: "Ejection burn",
+    text: "The engine burn that throws the spacecraft out of a planet's orbit and onto a path around the Sun toward the next planet. It is made at the lowest point of the orbit, where the spacecraft is fastest, because a burn there adds the most energy (the Oberth effect).",
+  },
+  burnAngle: {
+    term: "Burn angle",
+    text: "Which way the spacecraft leaves the planet, compared with the planet's own motion around the Sun. Leaving along it adds to the planet's speed and carries you outward (toward Mars); leaving against it subtracts and drops you inward (toward Earth). Small angles fine-tune where you cross the target's orbit.",
+  },
+  burnDeltaV: {
+    term: "Burn Δv",
+    text: "How much speed the burn adds, in metres per second. Too little and the spacecraft can't escape the planet or falls short of the target; too much and it crosses the target's orbit too early or too fast. It also decides how much propellant the burn uses.",
+  },
+  burnPropellant: {
+    term: "Propellant for the burn",
+    text: "The fuel and oxidiser the active stage has to burn to give that Δv, from the rocket equation. Each extra m/s costs more than the last, because the stage has to push the propellant it hasn't burnt yet too.",
+  },
+  vInf: {
+    term: "Departure speed (v∞)",
+    text: "Speed left over once the spacecraft has climbed out of the planet's gravity (\"v-infinity\"). This is what actually sends it on its way around the Sun. Some of the burn is spent just escaping, so v∞ is smaller than the burn's Δv.",
+  },
+
+  // Cruise systems
+  au: {
+    term: "AU (astronomical unit)",
+    text: "The average distance from the Earth to the Sun, about 150 million km. Mars orbits at about 1.52 AU.",
+  },
+  sunlight: {
+    term: "Sunlight",
+    text: "Sunlight spreads out as it travels, so it weakens with the square of the distance from the Sun. At Mars (1.52 AU) the solar panels get only about 43% of the light they get at Earth.",
+  },
+  solarOutput: {
+    term: "Solar output",
+    text: "The electricity the solar panels make right now. It falls as the spacecraft moves away from the Sun. When it drops below the demand, the battery makes up the difference until it runs flat.",
+  },
+  powerDemand: {
+    term: "Power demand",
+    text: "The electricity the spacecraft needs all the time for life support, computers, radios and heaters.",
+  },
+  heatLoad: {
+    term: "Heat load",
+    text: "The waste heat the crew and the electronics give off. In a vacuum it can't blow away, so radiators have to glow it out into space; if they shed less than this, the cabin warms up.",
+  },
+
+  // Science experiments
+  dataQuality: {
+    term: "Data quality",
+    text: "How useful the run's data is, from 0 to 100%. It mostly comes from the signal-to-noise ratio: how strong the thing you're measuring is compared with the random noise in the measurement. A result needs 60% to count.",
+  },
+  exposure: {
+    term: "Exposure",
+    text: "How long the camera collects light for each picture. Longer exposures gather more light (less noise), but the spacecraft keeps moving, so the picture smears.",
+  },
+  filter: {
+    term: "Filter",
+    text: "Lets only one colour (wavelength) of light into the camera. Each filter shows different things, and some colours are much brighter than others at Mars.",
+  },
+  integrationTime: {
+    term: "Integration time",
+    text: "How long the instrument adds up its measurements before giving a result. Noise averages out as it goes, so longer times can detect fainter signals.",
+  },
+  viewingGeometry: {
+    term: "Viewing geometry",
+    text: "Where the instrument looks. Nadir is straight down through the atmosphere; limb is sideways across its edge, a much longer path through the air, which makes thin gases easier to detect and shows how they change with height.",
+  },
+  boomLength: {
+    term: "Boom length",
+    text: "How far out on a pole the magnetometer sits. The spacecraft's own electronics make magnetic noise that fades quickly with distance, so a longer boom hears the planet more clearly.",
+  },
+  radarFrequency: {
+    term: "Radar frequency",
+    text: "How fast the radar waves oscillate. Lower frequencies reach deeper into ice, higher ones show finer layers. Waves below the ionosphere's plasma frequency are reflected or absorbed before reaching the ground, and the ionosphere is much stronger on the day side.",
+  },
+  localSolarTime: {
+    term: "Local solar time",
+    text: "The time of day on the ground below, by the Sun: 12 h is noon, 0 h midnight. Rock and dust warm up and cool down at different rates, so their temperatures differ most at certain times of day.",
+  },
+  wavelengthBand: {
+    term: "Wavelength band",
+    text: "Which infrared wavelengths the camera measures. Warm surfaces glow most strongly at a wavelength that depends on their temperature, so the right band gives the strongest signal.",
+  },
+  radioBand: {
+    term: "Radio band",
+    text: "The radio frequency used. Higher bands (X, Ka) are disturbed less by charged gas between the planets and measure more precisely; lower bands (S) are more affected.",
+  },
+  sampleRate: {
+    term: "Sample rate",
+    text: "How many measurements the receiver takes each second. Faster sampling means finer detail as the signal slices through the atmosphere.",
+  },
+
+  // Earth reentry
+  entryAngle: {
+    term: "Entry angle",
+    text: "How steeply the capsule's path points below the horizon when it reaches the top of the atmosphere (120 km). Together with the speed it decides the whole reentry: too shallow skips back out to space, too steep overheats and crushes.",
+  },
+  angleOfAttack: {
+    term: "Angle of attack",
+    text: "The tilt between the capsule's axis and the air rushing at it. A tilted capsule makes some lift, like a wing, which the guidance aims up or down to steer the descent. The tilt also pushes one shoulder of the heat shield further into the flow.",
+  },
+  entrySpeed: {
+    term: "Entry speed",
+    text: "How fast the capsule hits the top of the atmosphere. Coming back from Mars it is about 11.5 km/s, faster than coming back from Earth orbit (7.8 km/s), because it also falls all the way down Earth's gravity.",
+  },
+  liftToDrag: {
+    term: "Lift-to-drag ratio (L/D)",
+    text: "How much sideways lift the capsule makes for each unit of drag. A capsule's L/D is small (about 0.3 at most), but enough to stretch or shorten the descent and soften the braking.",
+  },
+  windwardShoulder: {
+    term: "Windward shoulder",
+    text: "The edge of the heat shield turned into the airflow by the angle of attack. It is heated more than the centre; the more the capsule tilts, the hotter it gets.",
+  },
+  flightPathAngle: {
+    term: "Flight path angle",
+    text: "The angle between the direction of travel and the horizon: negative is descending, positive climbing. If it turns positive high up, the capsule may be skipping back out of the atmosphere.",
+  },
+  downrange: {
+    term: "Downrange",
+    text: "Distance travelled over the ground since the entry interface. Lift stretches it, which spreads the braking over a longer path.",
+  },
+  gForce: {
+    term: "Deceleration (g)",
+    text: "How hard the air is braking the capsule, in multiples of Earth's gravity (g). Crews can survive brief peaks of about 15 g lying down; past that, the capsule's structure gives way too.",
+  },
+  heatFlux: {
+    term: "Heat flux",
+    text: "How much heat pours into each square centimetre of the heat shield every second. It grows with the cube of speed and the square root of air density, so it peaks partway down, while the capsule is still fast.",
+  },
+  heatShield: {
+    term: "Heat shield (ablator)",
+    text: "The thick base of the capsule, facing the flow. Its ablative material chars and slowly burns away, carrying the heat off with it. If any part gets too hot it burns through, and the capsule is lost.",
   },
 };

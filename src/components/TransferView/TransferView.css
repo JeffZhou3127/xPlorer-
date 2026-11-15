@@ -135,6 +135,10 @@
   --tv-key: rgba(255, 115, 77, 0.4);
 }
 
+.transfer-view__key--ghost-earth {
+  --tv-key: rgba(89, 153, 255, 0.4);
+}
+
 .transfer-view__key--planned {
   --tv-key: #ffb840;
 }

@@ -77,7 +77,7 @@ const goalNote = (coasting, coastWarp, flight, { apogee, perigee }) => {
   return `The apogee is below ${format(TARGET_APOGEE_KM.min)} km: the burn went on too long. Burn briefly along the direction of travel to raise it.`;
 };
 
-// Mission 1, step 9: Mars orbit insertion, reached from M1S8's Continue once Mars is
+// Mission 1, step 9: Mars orbit insertion, reached from M1S8A13's Continue once Mars is
 // reached. The spacecraft falls in on a hyperbola (v∞ from the transfer, route state
 // `arrival.vInf`) whose closest point is PERIAPSIS_ALTITUDE_KM over Mars's north pole, and
 // must brake into a 1,000 × 17,000 km orbit. The same flight panel as the launch (M1S4):
@@ -92,7 +92,7 @@ const M1S9 = () => {
   const { stages } = useSelector(selectRocket);
   const payloadMass = useSelector(selectSpacecraftMass);
 
-  // Stages and fuel left after the ejection burn (from M1S8); without them, the top stage, full.
+  // Stages and fuel left after the ejection burn (from M1S8A13); without them, the top stage, full.
   const startStage = state?.flight?.stageIndex ?? stages.length - 1;
   const startFuel = state?.flight?.stageFuel ?? stages.map(() => 1);
   const vInf = state?.arrival?.vInf ?? DEFAULT_V_INF;
@@ -209,7 +209,15 @@ const M1S9 = () => {
                   note={goalNote(coasting, coastWarp, flight, readouts)}
                   reached={reached}
                   reachedText={`Captured! Engines shut down in a Mars orbit with the perigee in ${windowText(TARGET_PERIGEE_KM)} and the apogee in ${windowText(TARGET_APOGEE_KM)}.`}
-                  action={{ label: "Continue", onClick: () => navigate("/m1-s10") }}
+                  action={{
+                    label: "Continue",
+                    // The science step passes the stages left after the capture burn on to the
+                    // second docking and refueling.
+                    onClick: () =>
+                      navigate("/m1-s10", {
+                        state: { ...state, flight: { stageIndex, stageFuel: flight.stageFuel } },
+                      }),
+                  }}
                 />
               </div>
             </FlightControls>

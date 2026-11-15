@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./ThrottleControl.css";
 
 // Vertical throttle lever (0–100%, top = full) with an engine on/off button below it.
@@ -23,7 +24,10 @@ const ThrottleControl = ({
 
   return (
     <fieldset className="throttle-control">
-      <legend className="throttle-control__title">Throttle</legend>
+      <legend className="throttle-control__title">
+        Throttle
+        <Info topic="throttle" />
+      </legend>
 
       {locked && (
         <p className="throttle-control__off throttle-control__off--locked">

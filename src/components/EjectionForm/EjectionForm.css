@@ -201,3 +201,9 @@
     transition: none;
   }
 }
+
+/* A label with its "?" explanation. */
+.ejection-form__label-row {
+  display: flex;
+  align-items: center;
+}

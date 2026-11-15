@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router";
 import OrbitReport from "../../components/OrbitReport/OrbitReport.jsx";
+import { Info } from "../../components/InfoTip/InfoTip.jsx";
 import { ORBIT_ALTITUDE_KM } from "../../utils/rocketPhysics.js";
 
 // Docking requirements for step 6.
@@ -11,14 +12,25 @@ const DOCKING_MAX_SPEED = 0.2; // m/s, relative to the depot
 // is reached and the player presses Continue. Sets up the docking step.
 const M1S5 = () => {
   const navigate = useNavigate();
-  // The flight's leftover stages, passed on to refueling (M1S7).
+  // The flight's leftover stages, passed on to refueling (M1S7A12).
   const { state } = useLocation();
   return (
     <OrbitReport
       paragraphs={[
-        `You are now in a circular orbit ${ORBIT_ALTITUDE_KM} km above Earth.`,
-        `After a few small manoeuvres, your rocket is now within ${DOCKING_DISTANCE_M} meters of a refueling depot.`,
-        `To refuel, you need to dock with the depot to within ${DOCKING_ACCURACY_M} meters of accuracy, at less than ${DOCKING_MAX_SPEED} m/s relative velocity.`,
+        <>
+          You are now in a circular orbit
+          <Info topic="circularOrbit" /> {ORBIT_ALTITUDE_KM} km above Earth.
+        </>,
+        <>
+          After a few small manoeuvres, your rocket is now within {DOCKING_DISTANCE_M} meters of a refueling depot
+          <Info topic="depot" />.
+        </>,
+        <>
+          To refuel, you need to dock
+          <Info topic="docking" /> with the depot to within {DOCKING_ACCURACY_M} meters of accuracy, at less than{" "}
+          {DOCKING_MAX_SPEED} m/s relative velocity
+          <Info topic="relativeVelocity" />.
+        </>,
       ]}
       onContinue={() => navigate("/m1-s6", { state })}
     />

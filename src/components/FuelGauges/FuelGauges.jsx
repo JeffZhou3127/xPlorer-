@@ -1,3 +1,4 @@
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./FuelGauges.css";
 
 // Low-fuel warning threshold (fraction of a full load).
@@ -5,9 +6,13 @@ const LOW_FUEL = 0.15;
 
 // Vertical fuel bars under `title`, one per entry in `gauges` ({ key, label, fraction,
 // detail }); `detail` (optional) is shown under the label, e.g. the tonnes on board.
-const FuelGauges = ({ gauges, title = "Fuel" }) => (
+// `info` (optional, a glossary key) adds a "?" explanation to the title.
+const FuelGauges = ({ gauges, title = "Fuel", info }) => (
   <section className="fuel-gauges" aria-label={`${title} remaining`}>
-    <h2 className="fuel-gauges__title">{title}</h2>
+    <h2 className="fuel-gauges__title">
+      {title}
+      {info && <Info topic={info} />}
+    </h2>
     <div className="fuel-gauges__row">
       {gauges.map(({ key, label, fraction, detail }) => {
         const percent = Math.round(fraction * 100);

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { GLOSSARY } from "../../utils/glossary.js";
 import "./InfoTip.css";
 
 const TIP_WIDTH = 256; // px, matches .info-tip__bubble
@@ -70,5 +71,8 @@ const InfoTip = ({ term, children }) => {
     </>
   );
 };
+
+// InfoTip for a glossary entry (`topic`, a GLOSSARY key).
+export const Info = ({ topic }) => <InfoTip term={GLOSSARY[topic].term}>{GLOSSARY[topic].text}</InfoTip>;
 
 export default InfoTip;

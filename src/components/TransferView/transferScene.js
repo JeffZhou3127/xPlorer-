@@ -1,8 +1,8 @@
 import { cameraAt, lineSet } from "../TrajectoryView/trajectoryScene.js";
-import { EARTH_ORBIT, EARTH_START, MARS_ORBIT, PHASE_ANGLE } from "../../utils/marsTransfer.js";
+import { EARTH_ORBIT, MARS_ORBIT, PLANETS } from "../../utils/marsTransfer.js";
 
-// Geometry and markup for the 3D Earth–Mars transfer scene (no React), in the style of the
-// flight panel's trajectory view. Scene units are 1 million km (1e9 m); the planets'
+// Geometry and markup for the 3D transfer scene, Earth to Mars or back (no React), in the
+// style of the flight panel's trajectory view. Scene units are 1 million km (1e9 m); the planets'
 // orbital plane is the scene's x–y plane, with the Sun at the origin.
 const UNIT = 1e9;
 
@@ -14,19 +14,24 @@ const circle = (radius, segments = 240) =>
     return [radius * Math.cos(a), radius * Math.sin(a), 0];
   });
 
-// From the Sun out to each planet at the burn, with an arc between them showing the phase angle.
-const phaseMarks = () => {
+// From the Sun out to each planet at the burn on `leg`, with an arc between them showing
+// the phase angle.
+const phaseMarks = (leg) => {
   const deg = (d) => (d * Math.PI) / 180;
   const ray = (angle, radius) => [
     [0, 0, 0],
     [radius * Math.cos(deg(angle)), radius * Math.sin(deg(angle)), 0],
   ];
-  const arcRadius = (EARTH_ORBIT / UNIT) * 0.45;
+  const arcRadius = (Math.min(EARTH_ORBIT, MARS_ORBIT) / UNIT) * 0.45;
   const arc = Array.from({ length: 33 }, (_, i) => {
-    const a = deg(EARTH_START + (PHASE_ANGLE * i) / 32);
+    const a = deg(leg.startAngle + (leg.phaseAngle * i) / 32);
     return [arcRadius * Math.cos(a), arcRadius * Math.sin(a), 0];
   });
-  return lineSet([ray(EARTH_START, EARTH_ORBIT / UNIT), ray(EARTH_START + PHASE_ANGLE, MARS_ORBIT / UNIT), arc]);
+  return lineSet([
+    ray(leg.startAngle, PLANETS[leg.from].orbit / UNIT),
+    ray(leg.startAngle + leg.phaseAngle, PLANETS[leg.to].orbit / UNIT),
+    arc,
+  ]);
 };
 
 // The whole of Mars's orbit, from above and a little to the south, so the plane reads as 3D.
@@ -67,8 +72,9 @@ const attrs = (values) =>
     .map(([name, value]) => `${name}="${value}"`)
     .join(" ");
 
-// The static scene; the paths and the bodies' positions are filled in live.
-export const sceneMarkup = () => `
+// The static scene for `leg` (TO_MARS or TO_EARTH); the paths and the bodies' positions
+// are filled in live. The ghost marks the target planet at the closest approach.
+export const sceneMarkup = (leg) => `
 <x3d class="transfer-view__x3d" showStat="false" showLog="false" showProgress="false">
   <scene>
     <background skyColor="0.004 0.012 0.03"></background>
@@ -77,14 +83,14 @@ export const sceneMarkup = () => `
 
     ${line("earthOrbit", COLORS.earthOrbit, lineSet([circle(EARTH_ORBIT / UNIT)]))}
     ${line("marsOrbit", COLORS.marsOrbit, lineSet([circle(MARS_ORBIT / UNIT)]))}
-    ${line("phase", COLORS.phase, phaseMarks(), 0.3)}
+    ${line("phase", COLORS.phase, phaseMarks(leg), 0.3)}
     ${line("planned", COLORS.planned)}
     ${line("flown", COLORS.flown)}
 
     ${marker("sun", COLORS.sun)}
     ${marker("earth", COLORS.earth)}
     ${marker("mars", COLORS.mars)}
-    ${marker("ghost", COLORS.mars, 0.6)}
+    ${marker("ghost", COLORS[leg.to], 0.6)}
     ${marker("closest", COLORS.planned)}
     ${marker("craft", "1 1 1")}
   </scene>

@@ -1,7 +1,9 @@
+import { Info } from "../InfoTip/InfoTip.jsx";
 import "./ViewSwitch.css";
 
-// Row of toggle buttons choosing one of `options` ({ value, label }).
-const ViewSwitch = ({ label, options, value, onChange }) => (
+// Row of toggle buttons choosing one of `options` ({ value, label }). `info` (optional,
+// a glossary key) adds a "?" explanation after the buttons.
+const ViewSwitch = ({ label, info, options, value, onChange }) => (
   <div className="view-switch" role="group" aria-label={label}>
     {options.map((option) => (
       <button
@@ -14,6 +16,7 @@ const ViewSwitch = ({ label, options, value, onChange }) => (
         {option.label}
       </button>
     ))}
+    {info && <Info topic={info} />}
   </div>
 );
 

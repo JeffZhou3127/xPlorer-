@@ -1,6 +1,7 @@
 import { format, formatMissionTime } from "./format.js";
 import { CABIN_MAX_C, RCS_PER_DAY, RCS_SETTLE, isCruiseFailure } from "./cruiseSystems.js";
 import { MARS_SOLAR_FACTOR } from "./spacecraftPhysics.js";
+import { G_LIMIT, SHIELD_LIMIT_C, isReentryFailure } from "./reentry.js";
 
 // Wording for the mission failure screen (no React).
 // `failure` is the record from flightSim (`flight.failure`): { kind: "crash" | "fuel" |
@@ -11,7 +12,11 @@ import { MARS_SOLAR_FACTOR } from "./spacecraftPhysics.js";
 // Or a cruise failure from cruiseSystems (`cruiseTimeline`): { kind: "power" | "heat" |
 // "rcs", time (s since the ejection burn), au, solar, demand (kW), battery,
 // batteryCapacity (kWh), temperature (°C), heatLoad, heatRejection (kW), rcs, rcsStart
-// (m/s), marsDistance (m) }.
+// (m/s), target ("Mars" or "Earth", the planet headed for), targetDistance (m) }.
+// Or a reentry failure from reentry.js (`reentryFailure`): { kind: "burnup" | "skip", cause
+// ("heat" | "overload", burnup only), body "Earth", time (s since the entry interface),
+// entryAngle, aoa (degrees), altitude, speed, lowest (m, the lowest point reached), maxG,
+// section (the hottest heat shield section), maxTemp (°C) }.
 // `targets` holds the goal windows in km: { apogee: { min, max }, perigee: { min, max } }.
 
 const km = (metres) => `${format(metres / 1000, 1)} km`;
@@ -25,7 +30,7 @@ const side = (value, { min, max }) => {
 
 const cruiseDay = (failure) => `day ${Math.floor(failure.time / 86400)}`;
 
-// { reason, detail, tip } for a systems failure on the way to Mars.
+// { reason, detail, tip } for a systems failure on the way to Mars or back to Earth.
 const explainCruiseFailure = (failure) => {
   const where = `${format(failure.au, 2)} AU from the Sun`;
   if (failure.kind === "power") {
@@ -44,8 +49,35 @@ const explainCruiseFailure = (failure) => {
   }
   return {
     reason: `The RCS ran dry on ${cruiseDay(failure)}, and the spacecraft could no longer hold its attitude.`,
-    detail: `Docking left ${format(failure.rcsStart, 1)} m/s of RCS Δv. Turning to the cruise attitude takes ${format(RCS_SETTLE)} m/s, and the small trims that keep the solar panels on the Sun use about ${format(RCS_PER_DAY, 2)} m/s a day.`,
-    tip: "Carry more RCS fuel in the spacecraft designer, and dock with fewer, finer pulses so more is left for the cruise.",
+    detail: `The spacecraft had ${format(failure.rcsStart, 1)} m/s of RCS Δv left at the burn. Turning to the cruise attitude takes ${format(RCS_SETTLE)} m/s, and the small trims that keep the solar panels on the Sun use about ${format(RCS_PER_DAY, 2)} m/s a day.`,
+    tip: "Carry more RCS fuel in the spacecraft designer (it has to last both dockings and both cruises), and dock with fewer, finer pulses so more is left for the cruise.",
+  };
+};
+
+// { reason, detail, tip } for a failed Earth reentry.
+const explainReentryFailure = (failure) => {
+  const how = `at ${format(failure.entryAngle, 1)}° and an angle of attack of ${format(failure.aoa, 1)}°`;
+  if (failure.kind === "skip") {
+    return {
+      reason: `The capsule skipped off the atmosphere and drifted back into space, ${formatMissionTime(failure.time)} after the entry interface.`,
+      detail: `Entering ${how}, it dipped only to ${km(failure.lowest)}: too shallow for the thin upper air to slow it below orbital speed, so it climbed back out like a stone skipping on water.`,
+      tip: "Enter more steeply (about 6–7° below the horizon on the way back from Mars). A little angle of attack helps too: the guidance points the lift down when the capsule starts to climb, holding it in the atmosphere.",
+    };
+  }
+  if (failure.cause === "overload") {
+    return {
+      reason: `The capsule broke apart under ${format(failure.maxG, 1)} g of deceleration and burned up, ${km(failure.altitude)} up.`,
+      detail: `Entering ${how}, it plunged into thick air too fast. Past ${G_LIMIT} g, neither the crew nor the structure survive.`,
+      tip: "Enter more shallowly, or give the capsule some angle of attack: its lift holds it higher, where the air is thinner, and spreads the braking out.",
+    };
+  }
+  const windward = failure.section === "Windward shoulder";
+  return {
+    reason: `The heat shield burned through at the ${failure.section.toLowerCase()}, ${km(failure.altitude)} up, and the capsule burned up.`,
+    detail: `Entering ${how}, it reached ${format(failure.maxTemp)} °C there, past the ${format(SHIELD_LIMIT_C)} °C the ablator can take.`,
+    tip: windward
+      ? "Lower the angle of attack: tilting the capsule turns its windward shoulder into the flow, and that section takes much more of the heat than the rest. Keep just enough for the lift you need."
+      : "Enter more shallowly: the steeper the dive, the denser the air the capsule meets at full speed, and the hotter the shield gets.",
   };
 };
 
@@ -82,6 +114,7 @@ const explainCaptureFailure = (failure, targets) => {
 
 // { reason, detail, tip } sentences explaining what happened.
 export const explainFailure = (failure, targets) => {
+  if (isReentryFailure(failure)) return explainReentryFailure(failure);
   if (isCruiseFailure(failure)) return explainCruiseFailure(failure);
   if (isMarsFailure(failure)) return explainCaptureFailure(failure, targets);
   if (!failure) {
@@ -165,28 +198,39 @@ export const explainFailure = (failure, targets) => {
   };
 };
 
-// Short label/value rows summarising the flight at the moment it failed.
+// Short label/value rows summarising the flight at the moment it failed (`info`: a
+// glossary key for the label's "?", where the term needs explaining).
 export const failureSummary = (failure) => {
   if (!failure) return [];
+  if (isReentryFailure(failure)) {
+    return [
+      { label: "Since entry interface", value: formatMissionTime(failure.time) },
+      { label: "Phase", value: "Earth reentry" },
+      { label: "Entry angle", value: `${format(failure.entryAngle, 1)}°`, info: "entryAngle" },
+      { label: "Angle of attack", value: `${format(failure.aoa, 1)}°`, info: "angleOfAttack" },
+      { label: "Peak deceleration", value: `${format(failure.maxG, 1)} g`, info: "gForce" },
+      { label: `Hottest (${failure.section.toLowerCase()})`, value: `${format(failure.maxTemp)} °C`, info: "heatShield" },
+    ];
+  }
   if (isCruiseFailure(failure)) {
     const rows = [
       { label: "Mission day", value: format(Math.floor(failure.time / 86400)) },
-      { label: "Phase", value: "Cruise to Mars" },
-      { label: "From the Sun", value: `${format(failure.au, 3)} AU` },
-      { label: "To Mars", value: `${format(failure.marsDistance / 1e9, 1)} million km` },
+      { label: "Phase", value: `Cruise to ${failure.target ?? "Mars"}` },
+      { label: "From the Sun", value: `${format(failure.au, 3)} AU`, info: "au" },
+      { label: `To ${failure.target ?? "Mars"}`, value: `${format(failure.targetDistance / 1e9, 1)} million km` },
     ];
     if (failure.kind === "power") {
       rows.push(
-        { label: "Solar output", value: `${format(failure.solar, 2)} kW` },
-        { label: "Demand", value: `${format(failure.demand, 1)} kW` },
+        { label: "Solar output", value: `${format(failure.solar, 2)} kW`, info: "solarOutput" },
+        { label: "Demand", value: `${format(failure.demand, 1)} kW`, info: "powerDemand" },
       );
     } else if (failure.kind === "heat") {
       rows.push(
-        { label: "Heat load", value: `${format(failure.heatLoad, 1)} kW` },
-        { label: "Radiators", value: `${format(failure.heatRejection, 1)} kW` },
+        { label: "Heat load", value: `${format(failure.heatLoad, 1)} kW`, info: "heatLoad" },
+        { label: "Radiators", value: `${format(failure.heatRejection, 1)} kW`, info: "heatRejection" },
       );
     } else {
-      rows.push({ label: "RCS after docking", value: `${format(failure.rcsStart, 1)} m/s` });
+      rows.push({ label: "RCS at the burn", value: `${format(failure.rcsStart, 1)} m/s`, info: "rcsDeltaV" });
     }
     return rows;
   }
@@ -201,16 +245,16 @@ export const failureSummary = (failure) => {
   ];
   if (failure.kind === "twr") {
     rows.push(
-      { label: "Thrust-to-weight", value: format(failure.twr, 2) },
-      { label: "Throttle", value: `${Math.round(failure.throttle * 100)}%` },
+      { label: "Thrust-to-weight", value: format(failure.twr, 2), info: "liftoffThrustToWeight" },
+      { label: "Throttle", value: `${Math.round(failure.throttle * 100)}%`, info: "throttle" },
     );
   } else if (failure.kind === "crash") {
     rows.push({ label: "Impact speed", value: `${format(Math.round(failure.speed))} m/s` });
   } else {
     rows.push(
       { label: "Altitude", value: km(failure.altitude) },
-      { label: "Apogee", value: failure.apogee === null ? "Escape" : km(failure.apogee) },
-      { label: "Perigee", value: failure.perigee === null ? "Below surface" : km(failure.perigee) },
+      { label: "Apogee", value: failure.apogee === null ? "Escape" : km(failure.apogee), info: "apogee" },
+      { label: "Perigee", value: failure.perigee === null ? "Below surface" : km(failure.perigee), info: "perigee" },
     );
   }
   return rows;

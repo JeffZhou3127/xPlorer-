@@ -430,8 +430,8 @@ export const EXPERIMENTS = [
     description: `Photograph the surface in detail. You can shoot anywhere from ${km(ORBIT_PERIAPSIS_KM)} to ${km(ORBIT_APOAPSIS_KM)} up; low means more detail, but the ground also races past faster.`,
     params: [
       ALTITUDE_PARAM,
-      { key: "exposure", label: "Exposure", type: "range", unit: "ms", min: 1, max: 50 },
-      { key: "filter", label: "Filter", type: "select", options: FILTERS },
+      { key: "exposure", label: "Exposure", type: "range", info: "exposure", unit: "ms", min: 1, max: 50 },
+      { key: "filter", label: "Filter", type: "select", info: "filter", options: FILTERS },
     ],
     defaults: { altitude: 8000, exposure: 20, filter: "blue" },
     run: runCamera,
@@ -443,8 +443,8 @@ export const EXPERIMENTS = [
     description: "Measure a gas in the thin Martian air by the sunlight it absorbs. Trace gases need long looks; methane would hint at geology or even life.",
     params: [
       { key: "gas", label: "Target gas", type: "select", options: GASES },
-      { key: "integration", label: "Integration time", type: "range", unit: "s", min: 1, max: 600 },
-      { key: "geometry", label: "Viewing geometry", type: "select", options: GEOMETRIES },
+      { key: "integration", label: "Integration time", type: "range", info: "integrationTime", unit: "s", min: 1, max: 600 },
+      { key: "geometry", label: "Viewing geometry", type: "select", info: "viewingGeometry", options: GEOMETRIES },
     ],
     defaults: { gas: "h2o", integration: 10, geometry: "nadir" },
     run: runSpectrometer,
@@ -455,7 +455,7 @@ export const EXPERIMENTS = [
     instrument: "Fluxgate magnetometer",
     description: "Mars has no global magnetic field today, but some rocks remember one. The sensor rides on a boom, away from the spacecraft's own electronics.",
     params: [
-      { key: "boom", label: "Boom length", type: "range", unit: "m", min: 0, max: 10 },
+      { key: "boom", label: "Boom length", type: "range", info: "boomLength", unit: "m", min: 0, max: 10 },
       ALTITUDE_PARAM,
       { key: "region", label: "Region", type: "select", options: REGIONS },
     ],
@@ -480,7 +480,7 @@ export const EXPERIMENTS = [
     instrument: "Sounding radar",
     description: "Radio pulses pass through ice and echo off buried layers. Low frequencies reach deeper; high ones see finer detail. The sunlit ionosphere blocks low frequencies.",
     params: [
-      { key: "frequency", label: "Frequency", type: "range", unit: "MHz", min: 1, max: 25 },
+      { key: "frequency", label: "Frequency", type: "range", info: "radarFrequency", unit: "MHz", min: 1, max: 25 },
       { key: "side", label: "Sounding on the", type: "select", options: SIDES },
       { key: "target", label: "Target", type: "select", options: RADAR_TARGETS },
     ],
@@ -493,8 +493,8 @@ export const EXPERIMENTS = [
     instrument: "Thermal infrared camera",
     description: "Rock holds the day's heat through the night; loose dust loses it fast. Comparing their temperatures tells bedrock from sand.",
     params: [
-      { key: "hour", label: "Local solar time", type: "range", unit: "h", min: 0, max: 23 },
-      { key: "band", label: "Wavelength band", type: "select", options: BANDS },
+      { key: "hour", label: "Local solar time", type: "range", info: "localSolarTime", unit: "h", min: 0, max: 23 },
+      { key: "band", label: "Wavelength band", type: "select", info: "wavelengthBand", options: BANDS },
     ],
     defaults: { hour: 10, band: "b7" },
     run: runThermal,
@@ -505,8 +505,8 @@ export const EXPERIMENTS = [
     instrument: "Radio occultation",
     description: "As the spacecraft slips behind Mars, its radio signal to Earth bends through the atmosphere. The bending gives temperature and pressure by height.",
     params: [
-      { key: "band", label: "Radio band", type: "select", options: RADIO_BANDS },
-      { key: "rate", label: "Sample rate", type: "range", unit: "Hz", min: 1, max: 50 },
+      { key: "band", label: "Radio band", type: "select", info: "radioBand", options: RADIO_BANDS },
+      { key: "rate", label: "Sample rate", type: "range", info: "sampleRate", unit: "Hz", min: 1, max: 50 },
     ],
     defaults: { band: "s", rate: 1 },
     run: runOccultation,
@@ -519,7 +519,7 @@ export const EXPERIMENTS = [
     params: [
       { key: "moon", label: "Moon", type: "select", options: MOONS },
       ALTITUDE_PARAM,
-      { key: "exposure", label: "Exposure", type: "range", unit: "ms", min: 1, max: 50 },
+      { key: "exposure", label: "Exposure", type: "range", info: "exposure", unit: "ms", min: 1, max: 50 },
     ],
     defaults: { moon: "phobos", altitude: 1000, exposure: 5 },
     run: runMoons,
@@ -531,7 +531,7 @@ export const EXPERIMENTS = [
     description: "Mass under the surface tugs the spacecraft, shifting its radio signal by fractions of a millimetre per second. Many orbits build a gravity map.",
     params: [
       { key: "target", label: "Target", type: "select", options: GRAVITY_TARGETS },
-      { key: "band", label: "Radio band", type: "select", options: DOPPLER_BANDS },
+      { key: "band", label: "Radio band", type: "select", info: "radioBand", options: DOPPLER_BANDS },
       { key: "orbits", label: "Orbits tracked", type: "range", unit: "orbits", min: 1, max: 200 },
     ],
     defaults: { target: "olympus", band: "x", orbits: 1 },

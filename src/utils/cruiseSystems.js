@@ -1,7 +1,8 @@
-import { AU, DAY, marsAt, positionAt } from "./marsTransfer.js";
+import { AU, DAY, positionAt, targetAt, targetName } from "./marsTransfer.js";
 import { HEAT_LOAD_KW, POWER_DEMAND_KW } from "./spacecraftPhysics.js";
 
-// The spacecraft's systems on the coast to Mars (mission 1, step 8). No React.
+// The spacecraft's systems on the coast between the planets (mission 1, steps 8 and 13).
+// No React.
 // Power: the panels make `solarEarth` kW at 1 AU, falling with the square of the distance
 // from the Sun; the battery covers any shortfall and recharges from any surplus.
 // Heat: the radiators reject up to their rating; anything above it warms the cabin.
@@ -25,13 +26,14 @@ const STEP = 3600;
 const CRUISE_FAILURE_KINDS = ["power", "heat", "rcs"];
 export const isCruiseFailure = (failure) => CRUISE_FAILURE_KINDS.includes(failure?.kind);
 
-// Hour-by-hour systems state from the burn to `until` s, for a spacecraft with `stats`
-// (from computeSpacecraftStats) and `rcsStart` m/s of RCS Δv left after docking, along
-// `path` (from transferPath). Returns { samples: [{ t, au, solar (kW), battery (kWh),
+// Hour-by-hour systems state on `leg` (TO_MARS or TO_EARTH) from the burn to `until` s,
+// for a spacecraft with `stats` (from computeSpacecraftStats) and `rcsStart` m/s of RCS
+// Δv left at the burn, along `path` (from transferPath). Returns { samples: [{ t, au, solar (kW), battery (kWh),
 // temperature (°C), rcs (m/s) }], failure }, where `failure` is null or { kind: "power" |
 // "heat" | "rcs", time, ...the state then, plus the design figures it is judged against }
-// and the samples stop at it.
-export const cruiseTimeline = (path, stats, rcsStart, until) => {
+// and the samples stop at it. Failures also carry `target` (the planet headed for) and
+// `targetDistance` (m).
+export const cruiseTimeline = (leg, path, stats, rcsStart, until) => {
   const samples = [];
   let battery = stats.batteryCapacity;
   let temperature = CABIN_NOMINAL_C;
@@ -48,7 +50,7 @@ export const cruiseTimeline = (path, stats, rcsStart, until) => {
     else if (battery <= 0) kind = "power";
     else if (temperature >= CABIN_MAX_C) kind = "heat";
     if (kind) {
-      const mars = marsAt(t);
+      const target = targetAt(leg, t);
       return {
         samples,
         failure: {
@@ -62,7 +64,8 @@ export const cruiseTimeline = (path, stats, rcsStart, until) => {
           batteryCapacity: stats.batteryCapacity,
           heatLoad: HEAT_LOAD_KW,
           heatRejection: stats.heatRejection,
-          marsDistance: Math.hypot(at.x - mars.x, at.y - mars.y),
+          target: targetName(leg),
+          targetDistance: Math.hypot(at.x - target.x, at.y - target.y),
         },
       };
     }

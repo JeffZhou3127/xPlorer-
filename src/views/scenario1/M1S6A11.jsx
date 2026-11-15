@@ -29,6 +29,20 @@ const MAX_FRAME_STEP = 0.1;
 // The approach is slow, so the clock allows more warp than the flight panel.
 const MAX_TIME_WARP = 10;
 
+// The two dockings this view flies.
+const LEGS = {
+  outbound: {
+    goal: "Dock with the refueling depot",
+    docked: "Docked! The spacecraft is latched to the depot and ready to refuel.",
+    next: "/m1-s7",
+  },
+  return: {
+    goal: "Dock with the Mars refueling depot",
+    docked: "Docked! The spacecraft is latched to the Mars depot and ready to refuel for the trip home.",
+    next: "/m1-s12",
+  },
+};
+
 const PRECISION_OPTIONS = [
   { value: "coarse", label: "Coarse" },
   { value: "fine", label: "Fine" },
@@ -102,17 +116,25 @@ const guidance = (docking) => {
   return `On the axis. Close in slowly and make contact at under ${DOCKING_TOLERANCE.speed} m/s.`;
 };
 
-// Mission 1, step 6: docking with the refueling depot, reached from M1S5. The spacecraft
-// starts 100 m out, slightly off the port's axis and out of alignment.
+// Mission 1, steps 6 and 11: docking with a refueling depot. `leg` picks which:
+// - "outbound" (step 6, /m1-s6, from M1S5): the depot in Earth orbit; Continue leads to the
+//   refueling (/m1-s7).
+// - "return" (step 11, /m1-s11, from the science experiments): the depot in Mars orbit;
+//   Continue leads to the second refueling (/m1-s12).
+// The spacecraft starts 100 m out, a random amount off the port's axis and out of alignment.
 // Left: RCS pulse pads (with keyboard shortcuts), precision and the goal, then approach
 // stats. Right: the docking camera with its HUD and the RCS gauge. The mission clock
-// (with time warp) sits at the bottom centre. Once docked, Continue leads to M1S7.
-const M1S6 = () => {
+// (with time warp) sits at the bottom centre.
+// Route state is passed on, with `rcsUsed` (RCS Δv spent so far) adding this docking's.
+const M1S6A11 = ({ leg = "outbound" }) => {
+  const { goal, docked, next: nextPath } = LEGS[leg];
   const navigate = useNavigate();
-  // The flight's leftover stages (from M1S5), passed on to refueling.
+  // The flight's leftover stages, passed on to refueling, and the RCS Δv already spent.
   const { state } = useLocation();
   const design = useSelector(selectSpacecraftDesign);
-  const rcsDeltaV = computeSpacecraftStats(design).rcsDeltaV;
+  const rcsFull = computeSpacecraftStats(design).rcsDeltaV;
+  const rcsBefore = state?.rcsUsed ?? 0;
+  const rcsDeltaV = Math.max(0, rcsFull - rcsBefore);
 
   const [warp, setWarp] = useState(1);
   const [precision, setPrecision] = useState("coarse");
@@ -201,6 +223,7 @@ const M1S6 = () => {
               <div className="flight-controls__column">
                 <ViewSwitch
                   label="Pulse precision"
+                  info="pulsePrecision"
                   options={PRECISION_OPTIONS}
                   value={precision}
                   onChange={setPrecision}
@@ -208,16 +231,16 @@ const M1S6 = () => {
                 <PhaseGoal
                   step={1}
                   steps={1}
-                  goal="Dock with the refueling depot"
+                  goal={goal}
                   meters={[]}
                   note={guidance(docking)}
                   reached={result?.docked ?? false}
-                  reachedText="Docked! The spacecraft is latched to the depot and ready to refuel."
+                  reachedText={docked}
                   failed={result !== null && !result.docked}
                   failedText={result?.reasons.join(" ")}
                   action={
                     result?.docked
-                      ? { label: "Continue", onClick: () => navigate("/m1-s7", { state: { ...state, rcsUsed: docking.rcsUsed } }) }
+                      ? { label: "Continue", onClick: () => navigate(nextPath, { state: { ...state, rcsUsed: rcsBefore + docking.rcsUsed } }) }
                       : { label: "Retry docking", onClick: retry }
                   }
                 />
@@ -231,7 +254,7 @@ const M1S6 = () => {
             docking={docking}
             aside={
               <FuelGauges
-                gauges={[{ key: "rcs", label: "RCS", fraction: rcsDeltaV > 0 ? remaining / rcsDeltaV : 0 }]}
+                gauges={[{ key: "rcs", label: "RCS", fraction: rcsFull > 0 ? remaining / rcsFull : 0 }]}
               />
             }
           />
@@ -249,4 +272,4 @@ const M1S6 = () => {
   );
 };
 
-export default M1S6;
+export default M1S6A11;
