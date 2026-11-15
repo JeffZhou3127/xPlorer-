@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`), orbit reached (`/m1-s5`, from goal 2's Continue; sets up docking), docking (`/m1-s6`, see below), refueling (`/m1-s7`, from the docked Continue; see below), Mars ejection burn (`/m1-s8`, from Undock; see below) and mission failure (`/mission-failure`, reached only from the flight panel). Each step's Continue leads to the next.
+xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`), orbit reached (`/m1-s5`, from goal 2's Continue; sets up docking), docking (`/m1-s6`, see below), refueling (`/m1-s7`, from the docked Continue; see below), Mars ejection burn (`/m1-s8`, from Undock; see below), Mars orbit insertion (`/m1-s9`, from M1S8's Continue once Mars is reached; see below) and mission failure (`/mission-failure`, reached from the flight panel, a systems failure in M1S8, or M1S9). Each step's Continue leads to the next.
 
 ## Commands
 
@@ -17,7 +17,8 @@ xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/s
 - **Vite 8 + React 19**, plain JS/JSX (no TypeScript). Arrow-function components, double quotes, semicolons.
 - **Linting**: oxlint with `react` and `oxc` plugins; `react/rules-of-hooks` is an error, `react/only-export-components` a warning (component files export only components, for Fast Refresh).
 - **Routing**: `react-router` v8, declarative. Import from `react-router`, not `react-router-dom`. `src/App.jsx` holds only `<Routes>`. Pages live in `src/views/` (scenario views in `src/views/scenario1/`, e.g. `M1S2.jsx` → `/m1-s2`). Scenario `<Link>`s live in `Home.jsx`. To add a view: create it, add a `<Route>` in `App.jsx`, and a `<Link>` in `Home.jsx`.
-- **Views vs. components**: views assemble components. Each component lives in its own PascalCase folder in `src/components/` with its CSS file, which it imports. Non-UI logic (physics, wording) lives in `src/utils/`.
+- **Views vs. components**: views assemble components. Each component lives in its own PascalCase folder in `src/components/` with its CSS file, which it imports. Non-UI logic (physics, wording) lives in `src/utils/`; shared hooks in `src/hooks/` (`useFlight`).
+- **Dev shortcut (temporary)**: `DevJump` (dashed amber button, top right of M1S2) jumps to M1S8 with every stage attached and full. To remove it, delete `src/components/DevJump/` and its import and element in `M1S2.jsx` (both marked `DEV ONLY`).
 - **Entry**: `src/index.jsx` mounts `<App />` inside `StrictMode`, the Redux `Provider` and `BrowserRouter`. Put new top-level providers there.
 - **State**: Redux Toolkit. `spacecraftSlice.js` (`updateDesign(patch)`) and `rocketSlice.js` (`{ stages, srbs, nextStageId }`; `addStage`, `removeStage`, `updateStage({ id, patch })`, `addSrbs`, `removeSrbs`, `updateSrbs`). Rocket design rules (`FUEL_RANGES`, `ENGINE_RANGES`, `rangesFor`, defaults, SRB limits) are in `rocketSlice.js`. Designs survive navigation but not a reload. Views use `useSelector`/dispatch; components are presentational.
 
@@ -27,7 +28,7 @@ xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/s
 - `src/utils/format.js`: `format`, `money`, `overBudgetReason(cost, budget)`, `formatMissionTime`.
 - `InfoTip`: "?" help button whose bubble is portalled to `document.body` (side panes scroll and would clip it). Text lives in `src/utils/glossary.js` (`GLOSSARY[key] = { term, text }`).
 - Reused across the mission views (optional props keep their original look by default): `FlightControls` (`title`), `MissionClock` (`caption`, e.g. "Docking Time"; `locked`), `PhaseGoal` (`failed`/`failedText`), `FuelGauges` (`title`, per-gauge `detail`).
-- Route state carries the flight's leftover stages (`{ flight: { stageIndex, stageFuel } }`) from M1S4 through M1S5–M1S7 to M1S8; views fall back to "only the top stage left" without it (e.g. opened directly).
+- Route state carries the flight's leftover stages (`{ flight: { stageIndex, stageFuel } }`) from M1S4 through M1S5–M1S7 to M1S8, plus `rcsUsed` (RCS Δv spent docking) from M1S6 on; views fall back to "only the top stage left" and no RCS used without it (e.g. opened directly).
 - `StepNav`: fixed Back/Continue bar rendered by each designer view next to its layout (not inside a pane). Buttons show only when `onBack`/`onContinue` is passed; `blockedReason` disables Continue with a tooltip. Buttons are inset 205px from the edges to clear the deployed site's corner badge. `ThreePane` side panes have bottom padding to clear it. `M1S3` (buttons inside `LaunchAlert`) and `M1S4` have no `StepNav`.
 
 ## Spacecraft designer (`/m1-s1`)
@@ -66,7 +67,7 @@ Stage conventions:
 
 ## Flight panel (`/m1-s4`)
 
-`M1S4.jsx`, `SplitPane` layout. Flight state is local (not Redux): the `useFlight` hook steps `stepFlight` every `requestAnimationFrame` (frame step capped at 0.1 s, times the warp), reading controls through a ref.
+`M1S4.jsx`, `SplitPane` layout. Flight state is local (not Redux): the `useFlight` hook (`src/hooks/useFlight.js`, shared with M1S9) steps `stepFlight` every `requestAnimationFrame` (frame step capped at 0.1 s, times the warp), reading controls through a ref.
 
 - **Clock**: starts at T−10; nothing moves until T−0, but controls work immediately. `MissionClock` (bottom centre) has a warp stepper 0 (paused) to `MAX_TIME_WARP` (5×); at 0 the step is skipped entirely.
 - **Left**: `FlightControls` with `ThrottleControl` (0–100%, shut down/restart; liquid engines only, SRBs always full), `PitchControl` (pitch **rate**, ±5°/s, plus "Hold attitude") and `PhaseGoal`; `FlightStats` below.
@@ -83,12 +84,13 @@ Stage conventions:
 
 **Simulation** (`src/utils/flightSim.js`, no React):
 
-- 2D flight around a round, non-rotating Earth; origin at Earth's centre, pad at `(0, EARTH_RADIUS)`. Semi-implicit Euler in `SUBSTEP` (0.02 s) steps. Forces: thrust along the axis (pitch from *local* vertical), inverse-square gravity, drag ½ρv²CdA.
+- 2D flight around a round, non-rotating planet, `flight.body` (`EARTH` by default, or `MARS`: no air, so no drag, vacuum thrust and a 0.1 s substep); origin at its centre, pad at `(0, EARTH_RADIUS)`. `flightInSpace` starts a flight already in space; `flightReadouts`, `predictedPath` and the apsis timers all use the flight's body. Semi-implicit Euler in `SUBSTEP` (0.02 s) steps. Forces: thrust along the axis (pitch from *local* vertical), inverse-square gravity, drag ½ρv²CdA.
 - Active stage drains at `throttle / stageBurnTime(stage)`; empty stages separate (taking SRBs), recorded in `flight.separation`. The top stage stays on when empty.
 - Touching the ground zeroes velocity (the rocket sits on the pad until thrust beats weight).
-- `flightReadouts`: altitude, speeds and Kepler apogee/perigee (`null` apogee = escape, `null` perigee = path hits ground). `timeToApogee` uses Kepler's equation. `flight.track` gets a point per flight second; `predictedPath` follows the vacuum conic.
+- `flightReadouts`: altitude, speeds and Kepler apogee/perigee (`null` apogee = escape, whose perigee is the hyperbola's closest pass; `null` perigee = path hits ground). `timeToApogee` and `timeToPerigee` (ellipse or hyperbola) use Kepler's equation.
+- Optional controls used by M1S9: `coastTo: "perigee"`, `coastRetrograde` (attitude held against the direction of travel while coasting) and `failOnEscape` (failure `"escape"` once climbing on an escape path above the apogee window). Failure records carry `body`. `flight.track` gets a point per flight second; `predictedPath` follows the vacuum conic.
 
-**`TrajectoryView`**: `x3dom` is a classic global script, injected lazily by `x3domLoader.js` and torn down by `shutdownX3dom`. The scene is built once as markup (`trajectoryScene.js`) and updated with `setAttribute`; React never renders the X3D tags. Units are 1,000 km, flight plane is x–y. The target orbit ring hides once goal 2 is reached.
+**`TrajectoryView`**: `x3dom` is a classic global script, injected lazily by `x3domLoader.js` and torn down by `shutdownX3dom`. The scene is built once as markup (`trajectoryScene.js`) and updated with `setAttribute`; React never renders the X3D tags. Units are 1,000 km. A `scene` prop describes the planet (`EARTH_SCENE` in `trajectoryScene.js` by default, flight plane x–y; `MARS_SCENE` in `marsScene.js`): markup, `toScene`, camera buttons, landmarks, which apsis to mark ahead and the legend. The target orbit ghost hides once the goal is reached.
 
 **Rocket drawing**: `RocketBody.jsx` draws the rocket only (used by `RocketDiagram` and `FlightView`); geometry helpers (`rocketTop`, `maxSrbFuel`, spacecraft heights) live in `rocketLayout.js`.
 
@@ -106,6 +108,16 @@ Stage conventions:
 
 ## Ejection burn (`/m1-s8`)
 
-`M1S8.jsx`, `SplitPane` layout. Left: `FlightControls` with `EjectionForm` (burn angle from Earth's orbital direction, + outward; burn Δv; readouts; **Eject** at the bottom, greyed out with a reason when the burn exceeds the active stage's Δv or doesn't escape Earth) and a `PhaseGoal` (closest approach to Mars; Try again on a miss). Right: `TransferView`, an X3DOM scene like `TrajectoryView` (reuses its loader and helpers; `transferScene.js`, units of 1 million km): Sun, both orbits, planets, the 44° phase marks before the burn, the planned path (amber), its closest approach and Mars's position then, and after Eject the flown path (cyan), animated at `DAYS_PER_SECOND`.
+`M1S8.jsx`, `SplitPane` layout. Left: `FlightControls` with `EjectionForm` (burn angle from Earth's orbital direction, + outward; burn Δv; a propellant meter, needed (`burnPropellant`) vs the active stage's tank; readouts; **Eject** at the bottom, greyed out with a reason when the burn exceeds the active stage's Δv or doesn't escape Earth) and a `PhaseGoal` (closest approach to Mars; Try again on a miss, Continue to M1S9 on an encounter, passing `flight` with the fuel the burn left and `arrival: { vInf }` from `arrivalSpeed`), then `CruiseStats` (trip, power, thermal and RCS readouts with meters). Right: `TransferView`, an X3DOM scene like `TrajectoryView` (reuses its loader and helpers; `transferScene.js`, units of 1 million km): Sun, both orbits, planets, the 44° phase marks before the burn, the planned path (amber), its closest approach and Mars's position then, and after Eject the flown path (cyan), animated at `DAYS_PER_SECOND`. RCS and battery `FuelGauges` float over it (`aside`).
 
 - **Model** (`src/utils/marsTransfer.js`, no React): patched conics. The burn is prograde in the 300 km parking orbit (Oberth), giving v∞; the angle sets v∞'s direction relative to Earth's heliocentric velocity. Then Sun-only Verlet integration (6 h steps, `MAX_DAYS`), circular coplanar planets, Mars `PHASE_ANGLE` (44°) ahead at the burn. An encounter is a closest approach within `ENCOUNTER_DISTANCE` (~Mars's sphere of influence). A pure Hohmann burn (~3.6 km/s, 0°) misses by ~1 million km because 44° is short of the ideal 44.3°; ~3.65–3.7 km/s with a small angle hits. `stageDeltaV` uses vacuum Isp with all stages full.
+- **Cruise systems** (`src/utils/cruiseSystems.js`, no React): at Eject, `cruiseTimeline` works out the coast hour by hour. Solar output falls with 1/r² and the battery covers any shortfall below `POWER_DEMAND_KW`; heat above the radiators' rating warms the cabin (fails at `CABIN_MAX_C`); RCS spends `RCS_SETTLE`, then `RCS_PER_DAY`. The first failure (`kind` "power" | "heat" | "rcs") stops the coast there, and M1S8 navigates to `/mission-failure` with `{ failure, retryState }`. For these, `MissionFailure` retries the burn (`/m1-s8`) or redesigns the spacecraft (`/m1-s1`); wording is in `missionFailure.js`.
+
+## Mars orbit insertion (`/m1-s9`)
+
+`M1S9.jsx`: the launch panel's interface (`FlightControls` with throttle, pitch and `PhaseGoal`; `FlightStats`; Attitude / Trajectory 3D with `FuelGauges`; `MissionClock` captioned "Since arrival") around Mars (`MARS` body, `MARS_SCENE`).
+
+- **Model** (`src/utils/marsArrival.js`): the spacecraft starts `START_ALTITUDE_KM` (10,000 km) up on a hyperbola for the arrival v∞ (`DEFAULT_V_INF` without route state), periapsis `PERIAPSIS_ALTITUDE_KM` (1,000 km) on the flight frame's +y, which `MARS_SCENE` maps to Mars's north pole (flight plane = polar x–z plane).
+- The approach coasts at a warp that takes ~10 real seconds, engines locked and pointed retrograde (`coastRetrograde`), until 60 s before perigee. Then the throttle unlocks (engines start off).
+- **Goal**: engines off with perigee in `TARGET_PERIGEE_KM` (900–1,100) and apogee in `TARGET_APOGEE_KM` (16,000–18,000); ~1.15 km/s of braking at the default v∞. No next step yet.
+- **Failure**: crash, fuel or escape → `/mission-failure` with `retryState`; `MissionFailure` retries `/m1-s9` or redesigns the rocket (`isMarsFailure`, `explainCaptureFailure` in `missionFailure.js`).

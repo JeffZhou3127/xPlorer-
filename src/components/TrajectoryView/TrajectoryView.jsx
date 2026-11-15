@@ -1,29 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { predictedPath } from "../../utils/flightSim.js";
-import { ORBIT_ALTITUDE_KM } from "../../utils/rocketPhysics.js";
 import { loadX3dom, shutdownX3dom } from "./x3domLoader.js";
-import {
-  EARTH_CAMERA,
-  LAUNCH_CAMERA,
-  MARKER_SIZES,
-  PAD,
-  lineSet,
-  pointString,
-  rocketCamera,
-  sceneMarkup,
-  toScene,
-} from "./trajectoryScene.js";
+import { EARTH_SCENE, MARKER_SIZES, lineSet, pointString } from "./trajectoryScene.js";
 import "./TrajectoryView.css";
 
 // How often the predicted path is redrawn (ms of real time); it changes smoothly, so
 // there's no need to rebuild a few hundred points every frame.
 const PREDICTION_REFRESH = 150;
-
-const VIEWS = [
-  { id: "launch", label: "Launch site" },
-  { id: "rocket", label: "Rocket" },
-  { id: "earth", label: "Whole Earth" },
-];
 
 const setAttributes = (element, values) => {
   for (const [name, value] of Object.entries(values)) element?.setAttribute(name, value);
@@ -39,25 +22,40 @@ const cameraPosition = (host) => {
   }
 };
 
-// 3D view of the flight around Earth, drawn with X3DOM in the style of NASA's
-// mission-viz demos: Earth with a latitude/longitude grid, the Kármán line (100 km) in
-// the flight plane, the target orbit as a dashed ghost ring (while `showTarget`), the path flown so far (cyan), the path the rocket would coast along
-// with the engines off and no air (amber) and its highest point, and the rocket itself.
-// Drag to orbit, scroll or right-drag to zoom; the buttons jump to preset cameras.
+// Index of the predicted path's highest (or lowest) point ahead, or null when the rocket
+// is already there or past it.
+const apsisIndex = (path, which) => {
+  const sign = which === "lowest" ? -1 : 1;
+  let best = 0;
+  path.forEach((p, i) => {
+    if (sign * Math.hypot(p.x, p.y) > sign * Math.hypot(path[best].x, path[best].y)) best = i;
+  });
+  return path.length > 1 && best > 0 ? best : null;
+};
+
+// 3D view of the flight around a planet, drawn with X3DOM in the style of NASA's
+// mission-viz demos. `scene` (EARTH_SCENE by default; see trajectoryScene.js) supplies the
+// planet, its cameras and legend: around Earth, the planet with a latitude/longitude
+// grid and the Kármán line (100 km) in the flight plane. On top: the target orbit as a
+// dashed ghost (while `showTarget`), the path flown so far (cyan), the path the rocket
+// would coast along with the engines off and no air (amber) with its high (or low) point
+// ahead, and the rocket itself.
+// Drag to orbit, scroll or right-drag to zoom; the buttons jump to the scene's cameras.
 // The scene is built once as markup and then updated through the DOM, which X3DOM watches.
-const TrajectoryView = ({ flight, showTarget = true, aside }) => {
+const TrajectoryView = ({ flight, showTarget = true, aside, scene = EARTH_SCENE }) => {
   const hostRef = useRef(null);
   const partsRef = useRef(null);
-  const drawnRef = useRef({ trackLength: -1, predictedAt: 0, apogee: null, rocket: null });
+  const drawnRef = useRef({ trackLength: -1, predictedAt: 0, apsis: null, rocket: null });
   const [status, setStatus] = useState("loading"); // "loading" | "ready" | "error"
-  const [view, setView] = useState("launch");
+  const [view, setView] = useState(scene.views[0].id);
+  const { toScene } = scene;
 
   // Build the scene and start X3DOM once.
   useEffect(() => {
     const host = hostRef.current;
     let cancelled = false;
 
-    host.innerHTML = sceneMarkup();
+    host.innerHTML = scene.markup();
     const x3dElement = host.querySelector("x3d");
     const find = (selector) => host.querySelector(selector);
     partsRef.current = {
@@ -66,11 +64,12 @@ const TrajectoryView = ({ flight, showTarget = true, aside }) => {
       predicted: find('[data-part="predicted"] indexedlineset'),
       predictedCoords: find('[data-part="predicted"] coordinate'),
       rocket: find('[data-part="rocket"]'),
-      apogee: find('[data-part="apogee"]'),
+      apsis: find('[data-part="apsis"]'),
       target: find('[data-part="target"]'),
-      views: Object.fromEntries(VIEWS.map(({ id }) => [id, find(`[data-view="${id}"]`)])),
+      ...Object.fromEntries(Object.keys(scene.landmarks).map((part) => [part, find(`[data-part="${part}"]`)])),
+      views: Object.fromEntries(scene.views.map(({ id }) => [id, find(`[data-view="${id}"]`)])),
     };
-    drawnRef.current = { trackLength: -1, predictedAt: 0, apogee: null, rocket: null };
+    drawnRef.current = { trackLength: -1, predictedAt: 0, apsis: null, rocket: null };
 
     loadX3dom()
       .then((x3dom) => {
@@ -88,7 +87,7 @@ const TrajectoryView = ({ flight, showTarget = true, aside }) => {
       partsRef.current = null;
       host.innerHTML = "";
     };
-  }, []);
+  }, [scene]);
 
   // Push the live flight into the scene after every render.
   useEffect(() => {
@@ -116,15 +115,11 @@ const TrajectoryView = ({ flight, showTarget = true, aside }) => {
       setAttributes(parts.predictedCoords, { point });
       setAttributes(parts.predicted, { coordIndex });
 
-      // Highest point ahead, unless the rocket is already past it.
-      let highest = 0;
-      path.forEach((p, i) => {
-        if (Math.hypot(p.x, p.y) > Math.hypot(path[highest].x, path[highest].y)) highest = i;
-      });
-      drawn.apogee = path.length > 1 && highest > 0 ? toScene(path[highest]) : null;
-      setAttributes(parts.apogee, {
-        render: String(drawn.apogee !== null),
-        ...(drawn.apogee && { translation: pointString(drawn.apogee) }),
+      const index = apsisIndex(path, scene.apsis);
+      drawn.apsis = index === null ? null : toScene(path[index]);
+      setAttributes(parts.apsis, {
+        render: String(drawn.apsis !== null),
+        ...(drawn.apsis && { translation: pointString(drawn.apsis) }),
       });
     }
 
@@ -140,8 +135,8 @@ const TrajectoryView = ({ flight, showTarget = true, aside }) => {
       const parts = partsRef.current;
       const camera = cameraPosition(hostRef.current);
       if (parts && camera) {
-        const { rocket, apogee } = drawnRef.current;
-        for (const [part, at] of Object.entries({ rocket, pad: PAD, apogee })) {
+        const { rocket, apsis } = drawnRef.current;
+        for (const [part, at] of Object.entries({ rocket, apsis, ...scene.landmarks })) {
           if (!at) continue;
           const size =
             Math.hypot(at[0] - camera.x, at[1] - camera.y, at[2] - camera.z) * MARKER_SIZES[part];
@@ -152,14 +147,13 @@ const TrajectoryView = ({ flight, showTarget = true, aside }) => {
     };
     frame = requestAnimationFrame(scaleMarkers);
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [scene]);
 
   const jumpTo = (id) => {
     const parts = partsRef.current;
     if (!parts) return;
-    const camera = { launch: LAUNCH_CAMERA, earth: EARTH_CAMERA }[id] ?? rocketCamera(toScene(flight));
     const viewpoint = parts.views[id];
-    setAttributes(viewpoint, camera);
+    setAttributes(viewpoint, scene.views.find((v) => v.id === id).camera(toScene(flight)));
     setAttributes(viewpoint, { set_bind: "true" });
     // Re-binding the current viewpoint is a no-op, so also undo any manual navigation.
     hostRef.current.querySelector("x3d")?.runtime?.resetView();
@@ -177,7 +171,7 @@ const TrajectoryView = ({ flight, showTarget = true, aside }) => {
         )}
 
         <div className="trajectory-view__views" role="group" aria-label="Camera">
-          {VIEWS.map(({ id, label }) => (
+          {scene.views.map(({ id, label }) => (
             <button
               key={id}
               type="button"
@@ -192,12 +186,11 @@ const TrajectoryView = ({ flight, showTarget = true, aside }) => {
         </div>
 
         <ul className="trajectory-view__legend">
-          <li className="trajectory-view__key trajectory-view__key--flown">Flown</li>
-          <li className="trajectory-view__key trajectory-view__key--predicted">Coast path (engines off, no air)</li>
-          {showTarget && (
-            <li className="trajectory-view__key trajectory-view__key--target">Target orbit ({ORBIT_ALTITUDE_KM} km)</li>
-          )}
-          <li className="trajectory-view__key trajectory-view__key--karman">Kármán line (100 km)</li>
+          {scene.legend(showTarget).map(({ key, label }) => (
+            <li key={key} className={`trajectory-view__key trajectory-view__key--${key}`}>
+              {label}
+            </li>
+          ))}
         </ul>
         <p className="trajectory-view__hint">Drag to orbit · scroll to zoom</p>
       </div>

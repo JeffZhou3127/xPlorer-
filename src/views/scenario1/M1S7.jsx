@@ -40,7 +40,9 @@ const useElapsed = (until) => {
 // right: the depot's gauge. Undock (to M1S8) appears once the transfer is complete.
 const M1S7 = () => {
   const navigate = useNavigate();
-  const flight = useLocation().state?.flight;
+  // { flight, rcsUsed } from docking, passed on to the ejection burn.
+  const { state } = useLocation();
+  const flight = state?.flight;
   const { stages } = useSelector(selectRocket);
 
   const tanks = attachedTanks(stages, flight);
@@ -64,7 +66,7 @@ const M1S7 = () => {
     <RefuelPanel
       title="Refueling"
       status={status}
-      action={done ? { label: "Undock", onClick: () => navigate("/m1-s8", { state: { flight } }) } : null}
+      action={done ? { label: "Undock", onClick: () => navigate("/m1-s8", { state }) } : null}
       left={
         <FuelGauges
           title="Spacecraft"

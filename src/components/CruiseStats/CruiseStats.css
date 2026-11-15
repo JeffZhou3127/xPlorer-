@@ -1,0 +1,14 @@
+.cruise-stats__status {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+.cruise-stats__status--alert {
+  color: #ff7b72;
+}
+
+/* The meters change every frame; a width transition would only make them lag. */
+.cruise-stats .rocket-stats__bar-fill {
+  transition: none;
+}

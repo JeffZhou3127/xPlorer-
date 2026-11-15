@@ -141,3 +141,8 @@
   color: #6e7681;
   pointer-events: none;
 }
+
+/* Mars's polar axis (MARS_COLORS.axis in marsScene.js). */
+.trajectory-view__key--axis {
+  --tv-key: #d99973;
+}

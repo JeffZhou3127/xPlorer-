@@ -217,7 +217,7 @@ const M1S6 = () => {
                   failedText={result?.reasons.join(" ")}
                   action={
                     result?.docked
-                      ? { label: "Continue", onClick: () => navigate("/m1-s7", { state }) }
+                      ? { label: "Continue", onClick: () => navigate("/m1-s7", { state: { ...state, rcsUsed: docking.rcsUsed } }) }
                       : { label: "Retry docking", onClick: retry }
                   }
                 />

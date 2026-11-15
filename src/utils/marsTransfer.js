@@ -11,6 +11,7 @@ export const AU = 1.495978707e11;
 export const EARTH_ORBIT = AU;
 export const MARS_ORBIT = 1.523679 * AU;
 export const MARS_RADIUS = 3389.5e3;
+export const MARS_GM = 4.282837e13;
 export const DAY = 86400;
 
 // Mars leads Earth by this angle at the burn (about a Hohmann launch window's 44°).
@@ -63,6 +64,16 @@ export const stageDeltaV = (stages, payloadMass) => {
   const massAbove = payloadMass + above.reduce((sum, s) => sum + dryMass(s) + s.fuel, 0);
   const dry = massAbove + dryMass(active);
   return specificImpulse(active, 1000) * G0 * Math.log((dry + active.fuel) / dry);
+};
+
+// Propellant (t) the active stage burns to give `burn` m/s, by the rocket equation; same
+// stack as stageDeltaV. Can exceed the stage's own fuel, when the burn is too big for it.
+export const burnPropellant = (stages, payloadMass, burn) => {
+  const [active, ...above] = stages;
+  if (!active) return 0;
+  const massAbove = payloadMass + above.reduce((sum, s) => sum + dryMass(s) + s.fuel, 0);
+  const full = massAbove + dryMass(active) + active.fuel;
+  return full * (1 - Math.exp(-burn / (specificImpulse(active, 1000) * G0)));
 };
 
 // The heliocentric path after a burn of `burn` m/s, leaving Earth `angle` degrees from the
@@ -123,6 +134,18 @@ export const transferPath = (burn, angle) => {
     if (i % (DAY / STEP) === 0) points.push({ t, ...pos });
   }
   return { vInf, points, closest };
+};
+
+// Speed relative to Mars (m/s) at the path's closest approach: the v∞ the spacecraft
+// arrives with. The spacecraft's velocity comes from its positions an hour either side.
+export const arrivalSpeed = (path) => {
+  const { t } = path.closest;
+  const h = 3600;
+  const before = positionAt(path.points, t - h);
+  const after = positionAt(path.points, t + h);
+  const m0 = marsAt(t - h);
+  const m1 = marsAt(t + h);
+  return Math.hypot(after.x - before.x - (m1.x - m0.x), after.y - before.y - (m1.y - m0.y)) / (2 * h);
 };
 
 // Spacecraft position `t` s after the burn, between the path's daily points.

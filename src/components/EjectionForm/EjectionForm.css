@@ -132,3 +132,72 @@
   text-align: center;
   color: #ff7b72;
 }
+
+/* Propellant the burn needs against the active stage's tank. */
+.ejection-form__meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ejection-form__meter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.ejection-form__meter-value {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: #e6edf3;
+}
+
+.ejection-form__meter--short .ejection-form__meter-value,
+.ejection-form__meter--short .ejection-form__meter-caption {
+  color: #ff7b72;
+}
+
+.ejection-form__meter-bar {
+  position: relative;
+  height: 0.9rem;
+  background: rgba(139, 148, 158, 0.12);
+}
+
+/* The stage's full tank, ending in a bright tick. */
+.ejection-form__meter-tank {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(0, 229, 255, 0.12);
+  border-right: 2px solid #e6edf3;
+}
+
+.ejection-form__meter-fill,
+.ejection-form__meter-over {
+  position: absolute;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  left: 0;
+  transition: width 0.15s ease;
+}
+
+.ejection-form__meter-fill {
+  background: var(--ef-accent);
+}
+
+.ejection-form__meter-over {
+  background: #ff7b72;
+}
+
+.ejection-form__meter-caption {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ejection-form__meter-fill,
+  .ejection-form__meter-over {
+    transition: none;
+  }
+}

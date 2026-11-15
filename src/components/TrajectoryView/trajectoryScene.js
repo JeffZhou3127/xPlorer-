@@ -1,9 +1,11 @@
 import { EARTH_RADIUS, ORBIT_ALTITUDE_KM } from "../../utils/rocketPhysics.js";
 
-// Geometry and markup for the 3D trajectory scene (no React).
-// Scene units are 1,000 km. The flight plane is the scene's x–y plane, which is Earth's
-// equator: the pad is at (0, R, 0), +x is downrange and +z is north.
-const UNIT = 1e6; // metres per scene unit
+// Geometry and markup for the 3D trajectory scene (no React), plus the shared X3D
+// helpers. Scene units are 1,000 km. A scene description (EARTH_SCENE here; MARS_SCENE in
+// marsScene.js) tells TrajectoryView how to draw a planet: see EARTH_SCENE.
+// Around Earth the flight plane is the scene's x–y plane, which is Earth's equator: the
+// pad is at (0, R, 0), +x is downrange and +z is north.
+export const UNIT = 1e6; // metres per scene unit
 export const R = EARTH_RADIUS / UNIT;
 const KARMAN = (EARTH_RADIUS + 100e3) / UNIT; // edge of space, 100 km up
 const TARGET_ORBIT = (EARTH_RADIUS + ORBIT_ALTITUDE_KM * 1e3) / UNIT; // the mission's circular orbit
@@ -29,12 +31,13 @@ export const lineSet = (polylines) => {
   return { point: points.join(", "), coordIndex: index.join(" ") };
 };
 
-const circle = (radius, at, segments = 180) =>
+export const circle = (radius, at, segments = 180) =>
   Array.from({ length: segments + 1 }, (_, i) => at((i / segments) * 2 * Math.PI, radius));
 
-// Latitude and longitude lines every 15°, just above the surface.
-const graticule = () => {
-  const r = R * 1.001;
+// Latitude and longitude lines every 15°, just above the surface of a planet of
+// `radius` (scene units), with +z as its polar axis.
+export const graticule = (radius = R) => {
+  const r = radius * 1.001;
   const lines = [];
   for (let lat = -75; lat <= 75; lat += 15) {
     const phi = (lat * Math.PI) / 180;
@@ -58,15 +61,17 @@ const graticule = () => {
 const karmanLine = () =>
   lineSet([circle(KARMAN, (a, r) => [r * Math.cos(a), r * Math.sin(a), 0], 360)]);
 
-// The target orbit as a dashed "ghost" circle in the flight plane: 120 dashes, each
-// covering half of its 3° slot.
-const ghostOrbit = (dashes = 120) => {
+// A closed curve (`at(angle)` → scene point, angle 0…2π) drawn as a dashed "ghost": 120
+// dashes, each covering half of its slot.
+export const dashedLoop = (at, dashes = 120) => {
   const slot = (2 * Math.PI) / dashes;
-  const at = (a) => [TARGET_ORBIT * Math.cos(a), TARGET_ORBIT * Math.sin(a), 0];
   return lineSet(
     Array.from({ length: dashes }, (_, i) => [at(i * slot), at(i * slot + slot / 4), at(i * slot + slot / 2)]),
   );
 };
+
+// The target orbit as a dashed ghost circle in the flight plane.
+const ghostOrbit = () => dashedLoop((a) => [TARGET_ORBIT * Math.cos(a), TARGET_ORBIT * Math.sin(a), 0]);
 
 // Camera orientation (X3D axis–angle) for an eye looking at `target` with `up` roughly up.
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -122,24 +127,26 @@ export const LAUNCH_CAMERA = cameraAt([-0.15, R + 0.2, 0.75], [0.15, R + 0.08, 0
 // The whole planet, tilted so the flight plane reads as 3D.
 export const EARTH_CAMERA = cameraAt([7, 9, 19], [0, 1.5, 0]);
 
-// Beside the rocket, a little above and off the flight plane, with local up kept up.
-export const rocketCamera = (position) => {
+// Beside the rocket, `lift` above it and `offPlane` (a scene vector) off the flight
+// plane, with local up kept up.
+export const rocketCamera = (position, offPlane = [0, 0, 1.1], lift = 0.35) => {
   const up = normalize(position);
-  const eye = [position[0] + up[0] * 0.35, position[1] + up[1] * 0.35, 1.1];
+  const eye = [0, 1, 2].map((i) => position[i] + up[i] * lift + offPlane[i]);
   return cameraAt(eye, position, up);
 };
 
-const attrs = (values) =>
+export const attrs = (values) =>
   Object.entries(values)
     .map(([name, value]) => `${name}="${value}"`)
     .join(" ");
 
 // Marker radius as a share of its distance from the camera, so markers keep the same
 // size on screen whether the view is at the pad or showing the whole planet.
-export const MARKER_SIZES = { rocket: 0.012, apogee: 0.009, pad: 0.007 };
+// `apsis` marks the predicted path's high (Earth) or low (Mars) point ahead.
+export const MARKER_SIZES = { rocket: 0.012, apsis: 0.009, pad: 0.007 };
 
 // A unit sphere; TrajectoryView scales it every frame using MARKER_SIZES.
-const marker = (part, color, translation = "0 0 0") => `
+export const marker = (part, color, translation = "0 0 0") => `
   <transform data-part="${part}" translation="${translation}" scale="0.01 0.01 0.01">
     <shape>
       <appearance><material diffuseColor="0 0 0" emissiveColor="${color}"></material></appearance>
@@ -147,7 +154,7 @@ const marker = (part, color, translation = "0 0 0") => `
     </shape>
   </transform>`;
 
-const line = (part, color, { point = "", coordIndex = "" } = {}, transparency = 0) => `
+export const line = (part, color, { point = "", coordIndex = "" } = {}, transparency = 0) => `
   <shape data-part="${part}">
     <appearance><material emissiveColor="${color}" transparency="${transparency}"></material></appearance>
     <indexedLineSet coordIndex="${coordIndex}"><coordinate point="${point}"></coordinate></indexedLineSet>
@@ -164,7 +171,7 @@ export const COLORS = {
 };
 
 // The static scene; the flown and predicted lines and the markers are filled in live.
-export const sceneMarkup = () => `
+const earthMarkup = () => `
 <x3d class="trajectory-view__x3d" showStat="false" showLog="false" showProgress="false">
   <scene>
     <background skyColor="0.004 0.012 0.03"></background>
@@ -184,7 +191,34 @@ export const sceneMarkup = () => `
     ${line("predicted", COLORS.predicted)}
 
     ${marker("pad", COLORS.pad, pointString(PAD))}
-    ${marker("apogee", COLORS.predicted)}
+    ${marker("apsis", COLORS.predicted)}
     ${marker("rocket", "1 1 1", pointString(PAD))}
   </scene>
 </x3d>`;
+
+// What TrajectoryView needs to draw a planet:
+// - toScene: flight-plane position ({ x, y }, m) → scene point;
+// - markup(): the X3D scene, with a viewpoint per view (data-view), the "target",
+//   "flown" and "predicted" lines and the "apsis" and "rocket" markers (data-part);
+// - views: camera buttons ({ id, label, camera(rocket scene point) → viewpoint
+//   attributes }), the first one bound at the start;
+// - landmarks: fixed markers kept the same size on screen ({ part: scene point });
+// - apsis: which point of the predicted path to mark ahead, "highest" or "lowest";
+// - legend(showTarget): [{ key, label }], styled by .trajectory-view__key--<key>.
+export const EARTH_SCENE = {
+  toScene,
+  markup: earthMarkup,
+  views: [
+    { id: "launch", label: "Launch site", camera: () => LAUNCH_CAMERA },
+    { id: "rocket", label: "Rocket", camera: (position) => rocketCamera(position) },
+    { id: "earth", label: "Whole Earth", camera: () => EARTH_CAMERA },
+  ],
+  landmarks: { pad: PAD },
+  apsis: "highest",
+  legend: (showTarget) => [
+    { key: "flown", label: "Flown" },
+    { key: "predicted", label: "Coast path (engines off, no air)" },
+    ...(showTarget ? [{ key: "target", label: `Target orbit (${ORBIT_ALTITUDE_KM} km)` }] : []),
+    { key: "karman", label: "Kármán line (100 km)" },
+  ],
+};

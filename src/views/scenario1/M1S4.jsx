@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
@@ -13,16 +13,14 @@ import FlightStats from "../../components/FlightStats/FlightStats.jsx";
 import MissionClock from "../../components/MissionClock/MissionClock.jsx";
 import PhaseGoal from "../../components/PhaseGoal/PhaseGoal.jsx";
 import { maxSrbFuel } from "../../components/RocketDiagram/rocketLayout.js";
-import { flightReadouts, inRange, initialFlight, stepFlight, timeToApogee } from "../../utils/flightSim.js";
+import useFlight from "../../hooks/useFlight.js";
+import { flightReadouts, inRange, initialFlight, isCoasting, timeToApogee } from "../../utils/flightSim.js";
 import { ORBIT_ALTITUDE_KM, ORBIT_WINDOW_KM } from "../../utils/rocketPhysics.js";
 import { selectRocket } from "../../store/rocketSlice.js";
 import { selectSpacecraftMass } from "../../store/spacecraftSlice.js";
 
 // Fastest the rocket can turn either way, in degrees per second.
 const MAX_PITCH_RATE = 5;
-
-// Longest step the animation takes at once (s), so a stalled frame doesn't jump the flight.
-const MAX_FRAME_STEP = 0.1;
 
 // Highest time warp the clock's stepper allows (0 = paused, then 1× up to this, in whole steps).
 const MAX_TIME_WARP = 5;
@@ -50,9 +48,6 @@ const coastWarpFor = (flight) => {
   const toCoastEnd = (timeToApogee(flight) ?? 0) - COAST_LEAD;
   return Math.max(1, Math.round(toCoastEnd / COAST_SECONDS));
 };
-
-// The coast runs from "Next goal" until the sim records its end.
-const isCoasting = (flight, coastStarted) => coastStarted && flight.coastEndTime === null;
 
 const missionPhase = (flight, coastStarted) => {
   if (!coastStarted) return "ascent";
@@ -143,39 +138,6 @@ const VIEW_OPTIONS = [
   { value: "trajectory", label: "Trajectory 3D" },
 ];
 
-// Runs the flight simulation once per animation frame, `controls.timeScale` simulated
-// seconds per real second. The controls are read through a ref so the loop starts only once.
-const useFlight = (stages, srbs, controls) => {
-  const [flight, setFlight] = useState(() => initialFlight(stages, srbs));
-  const controlsRef = useRef(controls);
-
-  useEffect(() => {
-    controlsRef.current = controls;
-  });
-
-  useEffect(() => {
-    let frame;
-    let last = performance.now();
-    const tick = (now) => {
-      const dt = Math.min(MAX_FRAME_STEP, (now - last) / 1000);
-      last = now;
-      const { timeScale, coastWarp, ...flightControls } = controlsRef.current;
-      setFlight((f) => {
-        // A coast runs at its own warp until the sim marks its end.
-        const scale = isCoasting(f, flightControls.coastStarted) ? coastWarp : timeScale;
-        // Paused (warp 0): the flight freezes (same state, so no re-render), but the
-        // controls can still be set.
-        return scale > 0 ? stepFlight(f, flightControls, dt * scale) : f;
-      });
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
-  return flight;
-};
-
 // Mission 1, step 4: the flight panel. Reached from the "Ready to Launch?" alert in step 3.
 // The designs are final from here on, so there is no Back button.
 // The countdown starts at T−10: the controls can be set straight away, but nothing
@@ -198,7 +160,7 @@ const M1S4 = () => {
   const [coastWarp, setCoastWarp] = useState(1); // set by "Next goal"
   // Shutting the engines down keeps the throttle setting for when they restart.
   const effectiveThrottle = enginesOn ? throttle / 100 : 0;
-  const flight = useFlight(stages, srbs, {
+  const flight = useFlight(() => initialFlight(stages, srbs), {
     stages,
     srbs,
     payloadMass,

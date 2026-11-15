@@ -29,8 +29,9 @@ const cameraPosition = (host) => {
 // after the burn, the 44° phase angle between them (before the burn), the path the burn
 // would fly (amber, `path` from transferPath, with its closest approach and where Mars
 // will be then), and once `launched`, the path flown (cyan) and the spacecraft.
+// `aside` (optional) floats over the right edge, e.g. system gauges.
 // Drag to orbit, scroll or right-drag to zoom.
-const TransferView = ({ path, launched, time }) => {
+const TransferView = ({ path, launched, time, aside }) => {
   const hostRef = useRef(null);
   const partsRef = useRef(null);
   const drawnRef = useRef({ path: undefined, positions: {} });
@@ -166,6 +167,7 @@ const TransferView = ({ path, launched, time }) => {
         {launched && <li className="transfer-view__key transfer-view__key--flown">Flown</li>}
         <li className="transfer-view__key transfer-view__key--ghost">Mars at closest approach</li>
       </ul>
+      {aside && <div className="transfer-view__aside">{aside}</div>}
       <p className="transfer-view__hint">Drag to orbit · scroll to zoom</p>
     </div>
   );

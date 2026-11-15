@@ -2,8 +2,18 @@ import "./FailureReport.css";
 
 // Centred red panel for a failed mission: the "Mission Failed!" header, what went wrong
 // (`reason`, `detail`), a short `summary` of the flight ([{ label, value }]), a `tip`,
-// and buttons to retry the launch or go back and redesign the rocket.
-const FailureReport = ({ reason, detail, tip, summary, onRetry, onRedesign }) => (
+// and buttons to retry and to go back and redesign (`retryLabel`, `redesignLabel`; by
+// default the launch and the rocket).
+const FailureReport = ({
+  reason,
+  detail,
+  tip,
+  summary,
+  onRetry,
+  onRedesign,
+  retryLabel = "Retry launch",
+  redesignLabel = "Redesign rocket",
+}) => (
   <section className="failure-report">
     <div className="failure-report__panel" role="alert" aria-labelledby="failure-report-title">
       <h1 className="failure-report__title" id="failure-report-title">
@@ -33,10 +43,10 @@ const FailureReport = ({ reason, detail, tip, summary, onRetry, onRedesign }) =>
 
       <div className="failure-report__actions">
         <button type="button" className="failure-report__secondary" onClick={onRedesign}>
-          ← Redesign rocket
+          ← {redesignLabel}
         </button>
         <button type="button" className="failure-report__primary" onClick={onRetry}>
-          Retry launch ↻
+          {retryLabel} ↻
         </button>
       </div>
     </div>

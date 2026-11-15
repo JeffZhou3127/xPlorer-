@@ -16,7 +16,7 @@ const FuelGauges = ({ gauges, title = "Fuel" }) => (
             <div
               className="fuel-gauges__bar"
               role="meter"
-              aria-label={`${label} fuel`}
+              aria-label={`${label} level`}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={percent}

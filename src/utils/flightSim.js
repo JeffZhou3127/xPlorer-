@@ -9,16 +9,29 @@ import {
   stageBurnTime,
   stageThrust,
 } from "./rocketPhysics.js";
+import { MARS_GM, MARS_RADIUS } from "./marsTransfer.js";
 
 // Simplified flight model for the flight panel (no React). Time is in seconds from
 // ignition (negative during the countdown); fuel is the fraction left (0–1).
-// The rocket flies in a 2D plane through the centre of a round, non-rotating Earth.
-// Position and velocity are in metres and m/s, with the origin at Earth's centre and
-// the launch pad at (0, EARTH_RADIUS); +x is downrange (to the right on screen).
+// The rocket flies in a 2D plane through the centre of a round, non-rotating planet
+// (`flight.body`, Earth unless given). Position and velocity are in metres and m/s, with
+// the origin at the planet's centre and, for a launch, the pad at (0, EARTH_RADIUS); +x
+// is downrange (to the right on screen).
 export const COUNTDOWN = 10;
 
+// The planets a flight can be around: gravity (m³/s²), radius (m), and whether the air
+// matters (drag and nozzle back-pressure). Mars's thin air is ignored at orbital heights.
+export const EARTH = { name: "Earth", gm: EARTH_GM, radius: EARTH_RADIUS, atmosphere: true };
+export const MARS = { name: "Mars", gm: MARS_GM, radius: MARS_RADIUS, atmosphere: false };
+const bodyOf = (flight) => flight.body ?? EARTH;
+
+// Engines with no air around them perform as at this height on Earth (vacuum).
+const VACUUM_ALTITUDE_KM = 1000;
+
 // Longest single integration step (s). Bigger frame steps (time warp) are split up.
+// Without air the forces change slowly, so the step can be longer.
 const SUBSTEP = 0.02;
+const VACUUM_SUBSTEP = 0.1;
 
 // Air resistance: drag = ½ ρ v² Cd A.
 const SEA_LEVEL_DENSITY = 1.225; // kg/m³; falls off with altitude like the pressure
@@ -59,6 +72,7 @@ const currentMass = (flight, stages, srbs, payloadMass) => {
 
 // Before T-0 the controls can be set, but nothing moves or burns.
 export const initialFlight = (stages, srbs) => ({
+  body: EARTH,
   time: -COUNTDOWN,
   pitch: 0, // degrees from local vertical, positive = right (downrange)
   stageIndex: 0, // stages[stageIndex] is the active (bottom) stage; lower ones are gone
@@ -83,19 +97,50 @@ export const initialFlight = (stages, srbs) => ({
   trackTime: null,
 });
 
+// A flight already in space around `body` (e.g. arriving at Mars): clock at 0, engines
+// free to light, no SRBs, and `stageFuel` (fractions, one per stage) with stages below
+// `stageIndex` gone. Position and velocity as in the flight state; `pitch` in degrees.
+export const flightInSpace = ({ body, stages, stageIndex, stageFuel, x, y, vx, vy, pitch = 0 }) => ({
+  ...initialFlight(stages, null),
+  body,
+  time: 0,
+  pitch,
+  stageIndex,
+  stageFuel,
+  x,
+  y,
+  vx,
+  vy,
+  liftedOff: true,
+});
+
+// Pitch (degrees from local vertical, positive = right) pointing straight against the
+// direction of travel.
+export const retrogradePitch = ({ x, y, vx, vy }) => {
+  const r = Math.hypot(x, y);
+  const up = { x: x / r, y: y / r };
+  const right = { x: up.y, y: -up.x };
+  return (Math.atan2(-(vx * right.x + vy * right.y), -(vx * up.x + vy * up.y)) * 180) / Math.PI;
+};
+
+// A coast runs from when the caller starts it (`coastStarted`) until the sim records its
+// end (`coastEndTime`, see stepFlight).
+export const isCoasting = (flight, coastStarted) => coastStarted && flight.coastEndTime === null;
+
 // Seconds of flight between recorded track points.
 const TRACK_INTERVAL = 1;
 
 // Is `value` (m, or null) inside `range` ({ min, max } in m)?
 export const inRange = (value, range) => value !== null && value >= range.min && value <= range.max;
 
-// What went wrong, for the mission failure screen: `kind` ("crash" | "fuel" | "twr"), which goal
-// was being attempted (1 = apogee, 2 = orbit, from "Next goal" on), when, and the
-// trajectory at that moment (metres and m/s).
+// What went wrong, for the mission failure screen: `kind` ("crash" | "fuel" | "twr" |
+// "escape"), the planet's name (`body`), which goal was being attempted (1 = apogee,
+// 2 = orbit, from "Next goal" on), when, and the trajectory at that moment (metres and m/s).
 const failureRecord = (kind, flight, goal, extra = {}) => {
   const { altitude, apogee, perigee } = flightReadouts(flight);
   return {
     kind,
+    body: bodyOf(flight).name,
     goal,
     time: flight.time,
     altitude,
@@ -112,20 +157,24 @@ const wrapAngle = (deg) => 180 - ((((180 - deg) % 360) + 360) % 360);
 const integrate = (flight, controls, dt) => {
   const { stages, srbs, payloadMass, pitchRate, throttle } = controls;
   const { targetPerigee, targetApogee, coastLead, coastStarted = false } = controls;
+  const { coastTo = "apogee", coastRetrograde = false, failOnEscape = false } = controls;
+  const holdRetrograde = coastRetrograde && isCoasting(flight, coastStarted);
   // Both apsides inside their windows (an apogee window is optional).
   const orbitInWindow = ({ apogee, perigee }) =>
     inRange(perigee, targetPerigee) && (targetApogee === undefined || inRange(apogee, targetApogee));
+  const body = bodyOf(flight);
   const { stageIndex, x, y, vx, vy } = flight;
   const r = Math.hypot(x, y);
   const up = { x: x / r, y: y / r };
   const right = { x: up.y, y: -up.x }; // local horizontal, downrange
-  const altitude = r - EARTH_RADIUS;
+  const altitude = r - body.radius;
   const mass = currentMass(flight, stages, srbs, payloadMass);
 
   // Thrust along the rocket's axis, tilted `pitch` from local vertical.
   const stage = stages[stageIndex];
   const srbsAttached = flight.srbFuel !== null;
-  let thrust = flight.stageFuel[stageIndex] > 0 ? stageThrust(stage, altitude / 1000) * throttle : 0;
+  const engineAltitudeKm = body.atmosphere ? altitude / 1000 : VACUUM_ALTITUDE_KM;
+  let thrust = flight.stageFuel[stageIndex] > 0 ? stageThrust(stage, engineAltitudeKm) * throttle : 0;
   if (srbsAttached) thrust += srbThrust(srbs);
   const angle = (flight.pitch * Math.PI) / 180;
   const axis = {
@@ -136,12 +185,12 @@ const integrate = (flight, controls, dt) => {
   // Drag opposes the motion through the air.
   const speed = Math.hypot(vx, vy);
   const mach = speed / speedOfSound(altitude);
-  const drag =
-    0.5 * airDensity(altitude) * speed * speed * dragCoefficient(mach) *
-    frontalArea(stages, stageIndex, srbsAttached);
+  const drag = body.atmosphere
+    ? 0.5 * airDensity(altitude) * speed * speed * dragCoefficient(mach) * frontalArea(stages, stageIndex, srbsAttached)
+    : 0;
 
-  // Inverse-square gravity toward Earth's centre.
-  const gravity = EARTH_GM / (r * r);
+  // Inverse-square gravity toward the planet's centre.
+  const gravity = body.gm / (r * r);
 
   const ax = (thrust * axis.x - (speed > 0 ? (drag * vx) / speed : 0)) / mass - gravity * up.x;
   const ay = (thrust * axis.y - (speed > 0 ? (drag * vy) / speed : 0)) / mass - gravity * up.y;
@@ -156,10 +205,10 @@ const integrate = (flight, controls, dt) => {
   // (so it sits on the pad until thrust beats its weight).
   const nr = Math.hypot(nx, ny);
   let crashSpeed = null; // set if this step brings a flying rocket back to the ground
-  if (nr < EARTH_RADIUS) {
+  if (nr < body.radius) {
     if (flight.liftedOff) crashSpeed = Math.hypot(nvx, nvy);
-    nx = (nx / nr) * EARTH_RADIUS;
-    ny = (ny / nr) * EARTH_RADIUS;
+    nx = (nx / nr) * body.radius;
+    ny = (ny / nr) * body.radius;
     nvx = 0;
     nvy = 0;
   }
@@ -190,7 +239,9 @@ const integrate = (flight, controls, dt) => {
   const next = {
     ...flight,
     time,
-    pitch: wrapAngle(flight.pitch + pitchRate * dt),
+    pitch: holdRetrograde
+      ? retrogradePitch({ x: nx, y: ny, vx: nvx, vy: nvy })
+      : wrapAngle(flight.pitch + pitchRate * dt),
     stageIndex: nextStage,
     stageFuel,
     srbFuel,
@@ -200,7 +251,7 @@ const integrate = (flight, controls, dt) => {
     vx: nvx,
     vy: nvy,
     drag,
-    liftedOff: flight.liftedOff || nr > EARTH_RADIUS,
+    liftedOff: flight.liftedOff || nr > body.radius,
   };
 
   // Mission phases (see stepFlight): ascent → coast → circularise. Each event is recorded
@@ -208,9 +259,10 @@ const integrate = (flight, controls, dt) => {
   // apogee in range, is checked live by the caller.)
   const coasting = coastStarted && next.coastEndTime === null;
 
-  // Coast: ends within `coastLead` seconds of apogee (or past it, or escaping).
+  // Coast: ends within `coastLead` seconds of apogee, or of perigee with `coastTo`
+  // "perigee" (or past it, or, toward apogee, escaping).
   if (coasting && coastLead !== undefined) {
-    const remaining = timeToApogee(next);
+    const remaining = coastTo === "perigee" ? timeToPerigee(next) : timeToApogee(next);
     if (remaining === null || remaining <= coastLead) next.coastEndTime = time;
   }
 
@@ -222,8 +274,16 @@ const integrate = (flight, controls, dt) => {
 
   // Failures end the flight (stepFlight stops advancing once one is set).
   const goal = coastStarted ? 2 : 1;
+  const climbing = nx * nvx + ny * nvy > 0;
   if (crashSpeed !== null) {
     next.failure = failureRecord("crash", next, goal, { speed: crashSpeed });
+  } else if (
+    failOnEscape && next.orbitGoalTime === null && targetApogee !== undefined && climbing &&
+    nr - body.radius > targetApogee.max && flightReadouts(next).apogee === null
+  ) {
+    // Climbing away on an escape path, already above the highest apogee allowed: any
+    // orbit caught from here would have its apogee at least this high, so the goal is gone.
+    next.failure = failureRecord("escape", next, goal);
   } else if (next.orbitGoalTime === null && targetPerigee !== undefined) {
     // Out of fuel for good: the last stage is empty and no boosters are left, and the
     // orbit isn't there yet (perigee or apogee out of range), so no goal can still be reached.
@@ -249,7 +309,10 @@ export const launchTwr = (flight, controls) => {
 // Advances the flight by `dt` seconds.
 // `controls`: { stages, srbs, payloadMass (t), pitchRate (°/s), throttle (0–1),
 //   and the optional mission settings targetPerigee and targetApogee ({ min, max } in m),
-//   coastLead (s), coastStarted (bool) }.
+//   coastLead (s), coastStarted (bool), coastTo ("apogee", the default, or "perigee"),
+//   coastRetrograde (bool: while coasting, point against the direction of travel,
+//   ignoring pitchRate)
+//   and failOnEscape (bool, see below) }.
 // - Pitch changes at `pitchRate`, measured from the local vertical.
 // - The active stage burns at `throttle` of its full-throttle flow (0 = engines off);
 //   its thrust depends on altitude (nozzle performance in thinning air).
@@ -264,6 +327,8 @@ export const launchTwr = (flight, controls) => {
 //   can't lift the rocket at T-0 (thrust-to-weight ratio below 1, see launchTwr), if
 //   the rocket touches the ground again after leaving it, or runs out of fuel completely
 //   (last stage empty, no SRBs) before the orbit goal, with the perigee or apogee out of range.
+//   With `failOnEscape`, it also fails ("escape") once it climbs on an escape path past
+//   the top of `targetApogee`, where no orbit in the window can be reached any more.
 // - SRBs can't throttle or shut down: they burn at full thrust until empty, then drop away.
 // - When the active stage runs dry it separates (taking any SRBs with it) and the next
 //   stage takes over. The top stage stays on, empty, when it runs out.
@@ -285,8 +350,9 @@ export const stepFlight = (flight, controls, dt) => {
   }
 
   if (f.failure) return f; // the flight is over
+  const substep = bodyOf(f).atmosphere ? SUBSTEP : VACUUM_SUBSTEP;
   while (remaining > 1e-9 && !f.failure) {
-    const step = Math.min(SUBSTEP, remaining);
+    const step = Math.min(substep, remaining);
     f = integrate(f, controls, step);
     remaining -= step;
   }
@@ -304,61 +370,72 @@ export const stepFlight = (flight, controls, dt) => {
 // vertical is straight up (positive = climbing).
 // Apogee and perigee are the high and low points of the orbit the rocket would follow
 // from here if the engines stopped and there were no air (a Kepler orbit).
-// `apogee` is null on an escape trajectory; `perigee` is null when the orbit dips
-// below the surface (a suborbital hop, so there is no real low point).
-export const flightReadouts = ({ x, y, vx, vy }) => {
+// `apogee` is null on an escape trajectory (whose perigee is its closest pass);
+// `perigee` is null when the path dips below the surface (a suborbital hop, so there is
+// no real low point). Heights are above `flight.body`.
+export const flightReadouts = (flight) => {
+  const { x, y, vx, vy } = flight;
+  const { gm, radius } = bodyOf(flight);
   const r = Math.hypot(x, y);
   const up = { x: x / r, y: y / r };
   const vertical = vx * up.x + vy * up.y;
   const horizontal = vx * up.y - vy * up.x;
   const speed = Math.hypot(vx, vy);
 
-  const energy = (speed * speed) / 2 - EARTH_GM / r; // specific orbital energy
+  const energy = (speed * speed) / 2 - gm / r; // specific orbital energy
   const momentum = x * vy - y * vx; // specific angular momentum
   let apogee = null;
   let perigee = null;
   if (energy < 0) {
-    const a = -EARTH_GM / (2 * energy);
-    const e = Math.sqrt(Math.max(0, 1 + (2 * energy * momentum * momentum) / EARTH_GM ** 2));
-    apogee = a * (1 + e) - EARTH_RADIUS;
-    const low = a * (1 - e) - EARTH_RADIUS;
+    const a = -gm / (2 * energy);
+    const e = Math.sqrt(Math.max(0, 1 + (2 * energy * momentum * momentum) / gm ** 2));
+    apogee = a * (1 + e) - radius;
+    const low = a * (1 - e) - radius;
+    perigee = low > 0 ? low : null;
+  } else {
+    // Escape path: the hyperbola still has a closest point (if it clears the ground).
+    const e = Math.sqrt(1 + (2 * energy * momentum * momentum) / gm ** 2);
+    const low = (momentum * momentum) / gm / (1 + e) - radius;
     perigee = low > 0 ? low : null;
   }
 
-  return { altitude: r - EARTH_RADIUS, speed, horizontal, vertical, apogee, perigee };
+  return { altitude: r - radius, speed, horizontal, vertical, apogee, perigee };
 };
 
-// Furthest the predicted path is drawn (m from Earth's centre), so escape paths end.
-const MAX_PATH_RADIUS = 10 * EARTH_RADIUS;
-// Angular step of the predicted path (radians, about 28 km of ground per step).
+// Furthest the predicted path is drawn (planet radii from its centre), so escape paths end.
+const MAX_PATH_RADII = 10;
+// Angular step of the predicted path (radians, about 28 km of ground per step on Earth).
 const PATH_STEP = Math.PI / 720;
 
 // The path the rocket would coast along from here with the engines off and no air:
 // a Kepler conic, followed forward until it hits the ground, completes one orbit, or
-// heads off past MAX_PATH_RADIUS. Returns [{ x, y }] in metres (empty while at rest).
-export const predictedPath = ({ x, y, vx, vy }) => {
+// heads off past MAX_PATH_RADII. Returns [{ x, y }] in metres (empty while at rest).
+export const predictedPath = (flight) => {
+  const { x, y, vx, vy } = flight;
+  const { gm, radius } = bodyOf(flight);
+  const maxRadius = MAX_PATH_RADII * radius;
   const r = Math.hypot(x, y);
   const speed = Math.hypot(vx, vy);
   if (speed < 1) return [];
 
-  const energy = (speed * speed) / 2 - EARTH_GM / r;
+  const energy = (speed * speed) / 2 - gm / r;
   const momentum = x * vy - y * vx;
 
   // Straight up or down: the conic degenerates to a line along the radius.
   if (Math.abs(momentum) < 1e-3 * r * speed) {
     const climbing = x * vx + y * vy > 0;
-    const top = energy < 0 ? Math.min(-EARTH_GM / energy, MAX_PATH_RADIUS) : MAX_PATH_RADIUS;
-    const end = climbing ? top : EARTH_RADIUS;
+    const top = energy < 0 ? Math.min(-gm / energy, maxRadius) : maxRadius;
+    const end = climbing ? top : radius;
     return [{ x, y }, { x: (x / r) * end, y: (y / r) * end }];
   }
 
   // Eccentricity vector (points at perigee) and semi-latus rectum.
-  const k = speed * speed - EARTH_GM / r;
+  const k = speed * speed - gm / r;
   const radial = x * vx + y * vy;
-  const ex = (k * x - radial * vx) / EARTH_GM;
-  const ey = (k * y - radial * vy) / EARTH_GM;
+  const ex = (k * x - radial * vx) / gm;
+  const ey = (k * y - radial * vy) / gm;
   const e = Math.hypot(ex, ey);
-  const p = (momentum * momentum) / EARTH_GM;
+  const p = (momentum * momentum) / gm;
   const perigeeAngle = Math.atan2(ey, ex);
 
   const start = Math.atan2(y, x);
@@ -369,35 +446,60 @@ export const predictedPath = ({ x, y, vx, vy }) => {
     const denominator = 1 + e * Math.cos(angle - perigeeAngle);
     if (e >= 1 && denominator <= 0.02) break; // nearing a hyperbola's asymptote
     const radius = p / denominator;
-    if (radius > MAX_PATH_RADIUS) break;
-    if (radius < EARTH_RADIUS) {
-      points.push({ x: EARTH_RADIUS * Math.cos(angle), y: EARTH_RADIUS * Math.sin(angle) });
+    const pathRadius = p / denominator;
+    if (pathRadius > maxRadius) break;
+    if (pathRadius < radius) {
+      points.push({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) });
       break;
     }
-    points.push({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) });
+    points.push({ x: pathRadius * Math.cos(angle), y: pathRadius * Math.sin(angle) });
   }
   return points;
 };
 
+// The orbit through the flight's position: { r, a (semi-major axis, negative on an
+// escape path), e, climbing, gm }.
+const conic = (flight) => {
+  const { x, y, vx, vy } = flight;
+  const { gm } = bodyOf(flight);
+  const r = Math.hypot(x, y);
+  const energy = (vx * vx + vy * vy) / 2 - gm / r;
+  const momentum = x * vy - y * vx;
+  return {
+    r,
+    a: -gm / (2 * energy),
+    e: Math.sqrt(Math.max(0, 1 + (2 * energy * momentum * momentum) / gm ** 2)),
+    climbing: x * vx + y * vy > 0,
+    gm,
+  };
+};
+
 // Seconds until the rocket reaches apogee if it coasts from here (Kepler, no air):
 // 0 once it is at or past apogee, null on an escape path (no apogee).
-export const timeToApogee = ({ x, y, vx, vy }) => {
-  const r = Math.hypot(x, y);
-  const energy = (vx * vx + vy * vy) / 2 - EARTH_GM / r;
-  if (energy >= 0) return null;
-
-  const a = -EARTH_GM / (2 * energy); // semi-major axis
-  const momentum = x * vy - y * vx;
-  const e = Math.sqrt(Math.max(0, 1 + (2 * energy * momentum * momentum) / EARTH_GM ** 2));
+export const timeToApogee = (flight) => {
+  const { r, a, e, climbing, gm } = conic(flight);
+  if (a <= 0) return null;
   if (e < 1e-6) return 0; // circular: every point is the apogee
 
   // Eccentric anomaly from the radius; it's in the first half of the orbit (0…π)
   // while climbing toward apogee, the second half while falling away from it.
-  const climbing = x * vx + y * vy > 0;
-  const eccentric = Math.acos(Math.min(1, Math.max(-1, (1 - r / a) / e)));
   if (!climbing) return 0;
-
+  const eccentric = Math.acos(Math.min(1, Math.max(-1, (1 - r / a) / e)));
   const mean = eccentric - e * Math.sin(eccentric);
-  const meanMotion = Math.sqrt(EARTH_GM / a ** 3);
-  return (Math.PI - mean) / meanMotion;
+  return (Math.PI - mean) / Math.sqrt(gm / a ** 3);
+};
+
+// Seconds until the rocket reaches perigee if it coasts from here (Kepler, no air),
+// on an orbit or an escape path: 0 once it is at or past perigee (climbing).
+export const timeToPerigee = (flight) => {
+  const { r, a, e, climbing, gm } = conic(flight);
+  if (climbing || e < 1e-6) return 0;
+  if (a > 0) {
+    // Falling toward perigee: the time back from perigee to here, mirrored.
+    const eccentric = Math.acos(Math.min(1, Math.max(-1, (1 - r / a) / e)));
+    return (eccentric - e * Math.sin(eccentric)) / Math.sqrt(gm / a ** 3);
+  }
+  // Hyperbola (a < 0): r = a(1 − e cosh F), and the mean anomaly is e sinh F − F.
+  const hyperbolic = Math.acosh(Math.max(1, (1 - r / a) / e));
+  return (e * Math.sinh(hyperbolic) - hyperbolic) / Math.sqrt(gm / (-a) ** 3);
 };
