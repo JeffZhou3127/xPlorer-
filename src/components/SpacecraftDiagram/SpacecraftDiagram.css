@@ -1,0 +1,22 @@
+/* Shares the blueprint line styles (.rd-*) from RocketDiagram.css. */
+.spacecraft-diagram {
+  --rd-line: #fff;
+  --rd-bg: #000;
+
+  width: 100%;
+  max-width: 44rem;
+  height: auto;
+  max-height: calc(100vh - 4rem);
+}
+
+.spacecraft-diagram * {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Fine surface detail: solar cell grid and radiator coolant tubes. */
+.sd-detail {
+  fill: none;
+  stroke: var(--rd-line);
+  stroke-width: 0.6;
+  opacity: 0.5;
+}

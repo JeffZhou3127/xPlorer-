@@ -5,9 +5,6 @@ export const G0 = 9.80665; // standard gravity, m/s²
 const SEA_LEVEL_PRESSURE = 101325;
 const SCALE_HEIGHT_KM = 8.5; // isothermal atmosphere approximation
 
-// Spacecraft on top of the stack (capsule, service module and fairing).
-export const PAYLOAD_MASS = 12;
-
 // Low Earth orbit target: circular orbital velocity v = √(GM / r) at 300 km altitude
 // (about 7,726 m/s). Gravity and drag losses on the way up are not included.
 const EARTH_GM = 3.986004418e14; // m³/s²
@@ -224,9 +221,10 @@ const computeSrbStats = (srbs, stackMass) => {
 // Per-stage performance; `stages` is ordered from the bottom stage up.
 // Each stage pushes everything above it, so mass is accumulated from the top down.
 // `srbs` is optional ({ fuel }) and adds a booster phase below Stage 1.
-export const computeRocketStats = (stages, srbs = null) => {
+// `payloadMass` is the spacecraft on top, in tonnes (from the spacecraft designer).
+export const computeRocketStats = (stages, srbs, payloadMass) => {
   const results = Array.from({ length: stages.length });
-  let massAbove = PAYLOAD_MASS;
+  let massAbove = payloadMass;
   let totalDeltaV = 0;
   let totalCost = 0;
 
@@ -275,5 +273,6 @@ export const computeRocketStats = (stages, srbs = null) => {
     totalCost,
     liftoffMass: massAbove,
     liftoffThrustToWeight,
+    payloadMass,
   };
 };

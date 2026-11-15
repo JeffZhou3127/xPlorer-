@@ -1,0 +1,113 @@
+/* Floats above the page with Back in the bottom-left corner and Continue in the
+   bottom-right, each pulled 205px in from the side so the deployed site's branding badge
+   in the corner never covers them. Above the panes, below the "?" tooltips (z-index 1000). */
+.step-nav {
+  --sn-accent: #00e5ff;
+  --sn-bg: #0d1117;
+  --sn-inset: 205px;
+
+  position: fixed;
+  bottom: 1.5rem;
+  left: var(--sn-inset);
+  right: var(--sn-inset);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  /* Clicks between the buttons fall through to the page underneath. */
+  pointer-events: none;
+}
+
+.step-nav > * {
+  pointer-events: auto;
+}
+
+.step-nav__back,
+.step-nav__continue-button {
+  padding: 0.5rem 1.25rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+
+/* Neutral, so Continue stays the main action. Solid so it reads over the page beneath. */
+.step-nav__back {
+  color: #c9d1d9;
+  background: var(--sn-bg);
+  border: 1px solid #30363d;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.step-nav__back:hover,
+.step-nav__back:focus-visible {
+  color: #e6edf3;
+  border-color: #8b949e;
+}
+
+/* Continue stays on the right, with or without a Back button. */
+.step-nav__continue {
+  position: relative;
+  margin-left: auto;
+}
+
+.step-nav__continue-button {
+  color: var(--sn-bg);
+  background: var(--sn-accent);
+  border: 1px solid var(--sn-accent);
+}
+
+.step-nav__continue-button:not([aria-disabled="true"]):hover,
+.step-nav__continue-button:not([aria-disabled="true"]):focus-visible {
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.step-nav__continue-button[aria-disabled="true"] {
+  color: #6e7681;
+  background: var(--sn-bg);
+  border-color: #30363d;
+  cursor: not-allowed;
+}
+
+/* Reason Continue is unavailable, shown above it on hover or focus. */
+.step-nav__tip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  width: max-content;
+  max-width: 16rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #ff7b72;
+  background: #161b22;
+  border: 1px solid #ff7b72;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+}
+
+.step-nav__continue-button:hover + .step-nav__tip,
+.step-nav__continue-button:focus-visible + .step-nav__tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* On narrow screens a 205px inset would squeeze the buttons together. */
+@media (max-width: 700px) {
+  .step-nav {
+    --sn-inset: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-nav__back,
+  .step-nav__tip {
+    transition: none;
+  }
+}

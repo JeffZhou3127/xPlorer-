@@ -78,6 +78,48 @@ export const GLOSSARY = {
   },
   payload: {
     term: "Payload",
-    text: "The spacecraft on top that you are trying to get to orbit: the crew capsule, service module and protective fairing.",
+    text: "The spacecraft you designed in the previous step: the command pod, service module, its systems and RCS fuel. Every tonne it weighs has to be lifted by the rocket, so bigger solar panels or more fuel up there cost Δv down here.",
+  },
+
+  // Spacecraft design screen
+  solarPanels: {
+    term: "Solar panels",
+    text: "Two wings of solar cells that turn sunlight into electricity. Bigger wings make more power but weigh and cost more. Sunlight at Mars is less than half as strong as at Earth, so size them for Mars.",
+  },
+  batteries: {
+    term: "Batteries",
+    text: "Store electricity for when the panels are in shadow, such as the night side of every orbit, or if the spacecraft has to point away from the Sun in an emergency. They must keep life support running until the Sun comes back.",
+  },
+  radiators: {
+    term: "Radiators",
+    text: "Panels that get rid of waste heat by glowing it away as infrared light. In space there is no air to carry heat off, so without radiators the electronics and the crew's body heat would slowly cook the cabin.",
+  },
+  rcsFuel: {
+    term: "RCS fuel",
+    text: "Propellant for the reaction control system: small thrusters that turn the spacecraft and nudge it gently, for example to line up and dock with the refueling station. It uses hydrazine, which ignites on its own without an igniter.",
+  },
+  spacecraftMass: {
+    term: "Spacecraft mass",
+    text: "Everything the rocket has to lift: the command pod with its crew, the service module, every system you fit and the RCS fuel. A lighter spacecraft makes the rocket's job easier.",
+  },
+  powerAtMars: {
+    term: "Power at Mars",
+    text: "The solar panels' output in Mars orbit, about 43% of what they make near Earth because sunlight weakens with the square of the distance from the Sun. It needs to cover the spacecraft's steady electrical load.",
+  },
+  batteryBackup: {
+    term: "Battery backup",
+    text: "How much stored energy the spacecraft needs to run life support and avionics for a few hours without sunlight: its power demand multiplied by the backup time.",
+  },
+  heatRejection: {
+    term: "Heat rejection",
+    text: "How much heat the radiators can dump to space. It must be at least the heat load: nearly all the electricity used ends up as heat, plus the crew's body heat.",
+  },
+  rcsDeltaV: {
+    term: "RCS Δv",
+    text: "The total change in speed the RCS thrusters can give the spacecraft with all their fuel. Docking and attitude control only need a little, but running out means you cannot dock to refuel.",
+  },
+  spacecraftCost: {
+    term: "Part cost",
+    text: "What this part of the spacecraft costs to build. The crewed command pod is by far the most expensive part, because it has to keep people alive and survive re-entry.",
   },
 };

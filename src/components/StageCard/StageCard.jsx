@@ -57,7 +57,7 @@ export const RangeField = ({ label, info, ariaLabel, min, max, value, onChange }
   );
 };
 
-const SelectField = ({ label, info, value, options, onChange }) => {
+export const SelectField = ({ label, info, value, options, onChange }) => {
   const id = useId();
 
   return (
