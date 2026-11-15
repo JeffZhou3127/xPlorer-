@@ -111,7 +111,10 @@ const wrapAngle = (deg) => 180 - ((((180 - deg) % 360) + 360) % 360);
 // One integration step of `dt` seconds (all of it after T-0).
 const integrate = (flight, controls, dt) => {
   const { stages, srbs, payloadMass, pitchRate, throttle } = controls;
-  const { targetPerigee, coastLead, coastStarted = false } = controls;
+  const { targetPerigee, targetApogee, coastLead, coastStarted = false } = controls;
+  // Both apsides inside their windows (an apogee window is optional).
+  const orbitInWindow = ({ apogee, perigee }) =>
+    inRange(perigee, targetPerigee) && (targetApogee === undefined || inRange(apogee, targetApogee));
   const { stageIndex, x, y, vx, vy } = flight;
   const r = Math.hypot(x, y);
   const up = { x: x / r, y: y / r };
@@ -211,10 +214,10 @@ const integrate = (flight, controls, dt) => {
     if (remaining === null || remaining <= coastLead) next.coastEndTime = time;
   }
 
-  // Circularise goal: everything shut down (no thrust at all) with the perigee in range.
+  // Circularise goal: everything shut down (no thrust at all) with the perigee, and the
+  // apogee, in range.
   if (coastStarted && !coasting && next.orbitGoalTime === null && targetPerigee !== undefined) {
-    const { perigee } = flightReadouts(next);
-    if (thrust === 0 && inRange(perigee, targetPerigee)) next.orbitGoalTime = time;
+    if (thrust === 0 && orbitInWindow(flightReadouts(next))) next.orbitGoalTime = time;
   }
 
   // Failures end the flight (stepFlight stops advancing once one is set).
@@ -223,12 +226,11 @@ const integrate = (flight, controls, dt) => {
     next.failure = failureRecord("crash", next, goal, { speed: crashSpeed });
   } else if (next.orbitGoalTime === null && targetPerigee !== undefined) {
     // Out of fuel for good: the last stage is empty and no boosters are left, and the
-    // orbit isn't there yet (perigee out of range), so no goal can still be reached.
+    // orbit isn't there yet (perigee or apogee out of range), so no goal can still be reached.
     const last = stages.length - 1;
     const empty = nextStage === last && stageFuel[last] <= 0 && srbFuel === null;
-    if (empty) {
-      const { perigee } = flightReadouts(next);
-      if (!inRange(perigee, targetPerigee)) next.failure = failureRecord("fuel", next, goal);
+    if (empty && !orbitInWindow(flightReadouts(next))) {
+      next.failure = failureRecord("fuel", next, goal);
     }
   }
   return next;
@@ -246,8 +248,8 @@ export const launchTwr = (flight, controls) => {
 
 // Advances the flight by `dt` seconds.
 // `controls`: { stages, srbs, payloadMass (t), pitchRate (°/s), throttle (0–1),
-//   and the optional mission settings targetPerigee ({ min, max } in m), coastLead (s),
-//   coastStarted (bool) }.
+//   and the optional mission settings targetPerigee and targetApogee ({ min, max } in m),
+//   coastLead (s), coastStarted (bool) }.
 // - Pitch changes at `pitchRate`, measured from the local vertical.
 // - The active stage burns at `throttle` of its full-throttle flow (0 = engines off);
 //   its thrust depends on altitude (nozzle performance in thinning air).
@@ -256,11 +258,12 @@ export const launchTwr = (flight, controls) => {
 //   - coast (from `coastStarted`): `flight.coastEndTime` is set once the rocket is within
 //     `coastLead` seconds of apogee, which ends the coast;
 //   - circularise (after the coast): `flight.orbitGoalTime` is set when the rocket is
-//     producing no thrust with its perigee inside `targetPerigee`.
+//     producing no thrust with its perigee inside `targetPerigee` (and its apogee inside
+//     `targetApogee`, when given).
 // - The mission fails (`flight.failure`, and the flight stops advancing) if the thrust
 //   can't lift the rocket at T-0 (thrust-to-weight ratio below 1, see launchTwr), if
 //   the rocket touches the ground again after leaving it, or runs out of fuel completely
-//   (last stage empty, no SRBs) before the orbit goal, with the perigee out of range.
+//   (last stage empty, no SRBs) before the orbit goal, with the perigee or apogee out of range.
 // - SRBs can't throttle or shut down: they burn at full thrust until empty, then drop away.
 // - When the active stage runs dry it separates (taking any SRBs with it) and the next
 //   stage takes over. The top stage stays on, empty, when it runs out.

@@ -54,7 +54,8 @@
   position: relative;
   height: 100%;
   background: var(--pg-accent);
-  transition: width 0.2s linear;
+  /* No width transition: the value changes every frame, and a transition restarted
+     each frame never catches up, so the bar would lag far behind the readout. */
 }
 
 .phase-goal__fill--over {
@@ -83,12 +84,6 @@
 .phase-goal--reached .phase-goal__status {
   font-style: normal;
   color: var(--pg-accent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .phase-goal__fill {
-    transition: none;
-  }
 }
 
 /* "Next goal": a solid accent button, so the way forward is obvious. */

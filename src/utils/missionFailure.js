@@ -83,6 +83,15 @@ export const explainFailure = (failure, targets) => {
       tip: `Watch the perigee during the burn and shut the engines down as soon as it enters ${perigeeKm}.`,
     };
   }
+  if (side(failure.perigee, targets.perigee) === "inside") {
+    // The perigee was fine, so the apogee (never below the perigee) had climbed too high.
+    const apogeeText = failure.apogee === null ? "on an escape path" : `at ${km(failure.apogee)}`;
+    return {
+      reason: `The rocket ran out of fuel at ${when} with its perigee in range but its apogee ${apogeeText}, above the ${apogeeKm} goal.`,
+      detail: "The circularisation burn went on too long and stretched the orbit, and there was no propellant left to bring the apogee back down.",
+      tip: `Watch both readouts during the burn and shut the engines down as soon as the perigee enters ${perigeeKm} while the apogee is still within ${apogeeKm}.`,
+    };
+  }
   return {
     reason: `The rocket ran out of fuel at ${when} before circularising the orbit. Its perigee was ${perigeeText(failure.perigee)}, short of the ${perigeeKm} needed.`,
     detail: `The first goal (an apogee of ${apogeeKm}) was reached, but there was not enough propellant left for the burn at apogee.`,

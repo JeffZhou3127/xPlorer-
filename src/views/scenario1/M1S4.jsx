@@ -33,7 +33,8 @@ const MAX_TIME_WARP = 5;
 // 2. "Next goal" starts a "coast": engines off and held off, time sped up (coastWarpFor)
 //    until COAST_LEAD seconds before apogee.
 // 3. "circularize": the engines can restart; the goal is met by shutting everything down
-//    with the perigee inside TARGET_PERIGEE_KM (a near-circular 300 km orbit).
+//    with the perigee inside TARGET_PERIGEE_KM and the apogee still inside
+//    TARGET_APOGEE_KM (a near-circular 300 km orbit).
 // Goals only turn their card green; nothing shuts the engines down automatically.
 const TARGET_APOGEE_KM = ORBIT_WINDOW_KM; // { min, max }
 const TARGET_PERIGEE_KM = ORBIT_WINDOW_KM;
@@ -75,6 +76,14 @@ const statusNote = (phase, enginesOn, coastWarp) => {
   return undefined;
 };
 
+// The apogee bar (both goals show it).
+const apogeeMeter = (apogee) => ({
+  label: "Apogee",
+  value: apogee === null ? null : apogee / 1000,
+  valueText: "escape",
+  target: TARGET_APOGEE_KM,
+});
+
 // Props for the PhaseGoal card in each phase.
 const goalCard = (phase, flight, readouts, coastWarp, onNextGoal) => {
   if (phase === "ascent") {
@@ -83,10 +92,7 @@ const goalCard = (phase, flight, readouts, coastWarp, onNextGoal) => {
     return {
       step: 1,
       goal: `Raise the apogee to ${windowText(TARGET_APOGEE_KM)}`,
-      label: "Apogee",
-      value: apogee === null ? null : apogee / 1000,
-      valueText: "escape",
-      target: TARGET_APOGEE_KM,
+      meters: [apogeeMeter(apogee)],
       note: tooHigh
         ? `The apogee is above ${TARGET_APOGEE_KM.max} km. Point the rocket against its direction of travel and burn briefly to bring it back down.`
         : `Burn until the apogee is between ${TARGET_APOGEE_KM.min} and ${TARGET_APOGEE_KM.max} km. Turning toward horizontal as you climb builds the sideways speed an orbit needs.`,
@@ -96,29 +102,37 @@ const goalCard = (phase, flight, readouts, coastWarp, onNextGoal) => {
     };
   }
 
-  const { perigee } = readouts;
+  const { apogee, perigee } = readouts;
   const toApogee = timeToApogee(flight);
+  const apogeeOk = inRange(apogee, metres(TARGET_APOGEE_KM));
+  const perigeeOk = inRange(perigee, metres(TARGET_PERIGEE_KM));
   let note;
   if (phase === "coast") {
     note = `Coasting to apogee at ${coastWarp}x. The engines unlock ${COAST_LEAD} s before apogee (apogee in ${duration(toApogee ?? 0)}).`;
+  } else if (perigee !== null && perigee > TARGET_PERIGEE_KM.max * 1000) {
+    note = `The perigee is above ${TARGET_PERIGEE_KM.max} km. Burn against the direction of travel to lower it back into the window, then shut down.`;
+  } else if (apogee === null || apogee > TARGET_APOGEE_KM.max * 1000) {
+    note = `The apogee has climbed above ${TARGET_APOGEE_KM.max} km. Burn briefly against the direction of travel to bring it back into the window.`;
+  } else if (apogeeOk && perigeeOk) {
+    note = "Apogee and perigee in range. Shut the engines down to lock in the orbit.";
   } else {
-    note = `${toApogee ? `Apogee in ${duration(toApogee)}. ` : ""}Burn horizontally near apogee to raise the perigee into ${windowText(TARGET_PERIGEE_KM)}, then shut the engines down.`;
-    if (perigee !== null && perigee > TARGET_PERIGEE_KM.max * 1000) {
-      note = `The perigee is above ${TARGET_PERIGEE_KM.max} km. Burn against the direction of travel to lower it back into the window, then shut down.`;
-    } else if (inRange(perigee, metres(TARGET_PERIGEE_KM))) {
-      note = "Perigee in range. Shut the engines down to lock in the orbit.";
-    }
+    note = `${toApogee ? `Apogee in ${duration(toApogee)}. ` : ""}Burn horizontally near apogee to raise the perigee into ${windowText(TARGET_PERIGEE_KM)}, keeping the apogee in ${windowText(TARGET_APOGEE_KM)}, then shut the engines down.`;
   }
   return {
     step: 2,
     goal: `Circularise the orbit at ${ORBIT_ALTITUDE_KM} km`,
-    label: "Perigee",
-    value: perigee === null ? null : perigee / 1000,
-    valueText: "below surface",
-    target: TARGET_PERIGEE_KM,
+    meters: [
+      apogeeMeter(apogee),
+      {
+        label: "Perigee",
+        value: perigee === null ? null : perigee / 1000,
+        valueText: "below surface",
+        target: TARGET_PERIGEE_KM,
+      },
+    ],
     note,
     reached: flight.orbitGoalTime !== null,
-    reachedText: `Orbit achieved! Engines shut down with the perigee in ${windowText(TARGET_PERIGEE_KM)}.`,
+    reachedText: `Orbit achieved! Engines shut down with the apogee in ${windowText(TARGET_APOGEE_KM)} and the perigee in ${windowText(TARGET_PERIGEE_KM)}.`,
   };
 };
 
@@ -190,6 +204,7 @@ const M1S4 = () => {
     pitchRate,
     throttle: effectiveThrottle,
     targetPerigee: metres(TARGET_PERIGEE_KM),
+    targetApogee: metres(TARGET_APOGEE_KM),
     coastLead: COAST_LEAD,
     coastStarted,
     timeScale: timeWarp,
