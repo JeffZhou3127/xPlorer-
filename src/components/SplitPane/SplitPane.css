@@ -1,0 +1,47 @@
+.split-pane {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  height: 100vh;
+}
+
+.split-pane__left,
+.split-pane__right {
+  box-sizing: border-box;
+  padding: 2rem;
+  /* Keeps content clear of the fixed mission clock at the bottom centre. */
+  padding-bottom: 8.5rem;
+  min-height: 0;
+}
+
+.split-pane__left,
+.split-pane__right {
+  overflow-y: auto;
+}
+
+.split-pane__left {
+  border-right: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+.split-pane__right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 800px) {
+  .split-pane {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .split-pane__left {
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+  }
+
+  .split-pane__right {
+    min-height: 80vh;
+  }
+}

@@ -1,0 +1,188 @@
+.throttle-control {
+  --tc-accent: #00e5ff;
+  --tc-thumb: 1rem;
+
+  margin: 0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.04);
+}
+
+.throttle-control__title {
+  padding: 0 0.4rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--tc-accent);
+}
+
+.throttle-control__body {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  height: 13rem;
+}
+
+.throttle-control__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* Line the labels up with the thumb's travel. */
+  padding: calc(var(--tc-thumb) / 2 - 0.5em) 0;
+  font-size: 0.7rem;
+  color: #8b949e;
+  text-align: right;
+}
+
+/* Vertical slider with min at the bottom. The fill runs from 0 up to the thumb;
+   --tc-fill (0–1) is set inline and offset by half a thumb so it ends at its centre. */
+.throttle-control__slider {
+  --tc-b: calc(var(--tc-thumb) / 2 + (100% - var(--tc-thumb)) * var(--tc-fill, 1));
+
+  -webkit-appearance: none;
+  appearance: none;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 1.5rem;
+  height: 100%;
+  margin: 0;
+  background: linear-gradient(
+      to top,
+      var(--tc-accent) 0 var(--tc-b),
+      rgba(0, 229, 255, 0.15) var(--tc-b)
+    )
+    center / 0.45rem 100% no-repeat;
+  cursor: pointer;
+}
+
+.throttle-control__slider::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.throttle-control__slider::-moz-range-track {
+  background: transparent;
+}
+
+.throttle-control__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.5rem;
+  height: var(--tc-thumb);
+  border: none;
+  border-radius: 2px;
+  background: var(--tc-accent);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+.throttle-control__slider::-moz-range-thumb {
+  width: 1.5rem;
+  height: var(--tc-thumb);
+  border: none;
+  border-radius: 2px;
+  background: var(--tc-accent);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+.throttle-control__slider:focus-visible {
+  outline: none;
+}
+
+.throttle-control__slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #e6edf3;
+  outline-offset: 2px;
+}
+
+.throttle-control__slider:focus-visible::-moz-range-thumb {
+  outline: 2px solid #e6edf3;
+  outline-offset: 2px;
+}
+
+.throttle-control__readout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.throttle-control__label {
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+.throttle-control__value {
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--tc-accent);
+}
+
+.throttle-control__note {
+  margin: 0;
+  max-width: 14rem;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #8b949e;
+}
+
+/* Shown in place of the lever while the engines are off. */
+.throttle-control__off {
+  margin: 0;
+  padding: 0.75rem 0;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #ff7b72;
+}
+
+/* Engine on/off button: red to shut down, accent to restart. */
+.throttle-control__engines {
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: #ff7b72;
+  background: transparent;
+  border: 1px solid rgba(255, 123, 114, 0.5);
+  cursor: pointer;
+}
+
+.throttle-control__engines:hover,
+.throttle-control__engines:focus-visible {
+  background: rgba(255, 123, 114, 0.15);
+}
+
+.throttle-control__engines--off {
+  color: var(--tc-accent);
+  border-color: rgba(0, 229, 255, 0.5);
+}
+
+.throttle-control__engines--off:hover,
+.throttle-control__engines--off:focus-visible {
+  background: rgba(0, 229, 255, 0.12);
+}
+
+/* Engines held off for now (e.g. coasting to apogee). */
+.throttle-control__off--locked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: #ffb840;
+}
+
+.throttle-control__off-detail {
+  font-family: inherit;
+  font-size: 0.75rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #8b949e;
+}
+
+.throttle-control__engines:disabled {
+  color: #6e7681;
+  border-color: rgba(110, 118, 129, 0.4);
+  background: transparent;
+  cursor: default;
+}

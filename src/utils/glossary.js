@@ -122,4 +122,28 @@ export const GLOSSARY = {
     term: "Part cost",
     text: "What this part of the spacecraft costs to build. The crewed command pod is by far the most expensive part, because it has to keep people alive and survive re-entry.",
   },
+  velocity: {
+    term: "Velocity",
+    text: "How fast the rocket is moving overall. To stay in a low orbit you need about 7,700 m/s of it, almost all horizontal.",
+  },
+  horizontalVelocity: {
+    term: "Horizontal velocity",
+    text: "Speed along the ground (positive is to the right, downrange). This is what keeps a spacecraft in orbit: go fast enough sideways and the ground curves away beneath you as fast as you fall.",
+  },
+  verticalVelocity: {
+    term: "Vertical velocity",
+    text: "Speed straight up (positive) or down (negative). Climbing gets you out of the thick air, but height alone won't keep you up: you must turn sideways to build horizontal speed.",
+  },
+  drag: {
+    term: "Drag",
+    text: "Air resistance pushing back against the rocket. It grows with the square of speed and with air density, and peaks around the speed of sound. It fades away as the air thins out higher up.",
+  },
+  apogee: {
+    term: "Apogee",
+    text: "The highest point the rocket would reach if the engines stopped now, ignoring air. \"Escape\" means it is going fast enough to leave Earth for good.",
+  },
+  perigee: {
+    term: "Perigee",
+    text: "The lowest point of the orbit the rocket would follow if the engines stopped now, ignoring air. It shows \"—\" while that path still hits the ground; once it is above the atmosphere (about 100 km) you are in orbit.",
+  },
 };

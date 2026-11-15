@@ -1,0 +1,143 @@
+/* Fills the rest of the right pane under the view switch (as does .flight-view).
+   The stage clips X3DOM's canvas, which sizes itself in pixels, so it can't spill out. */
+.trajectory-view {
+  display: flex;
+  align-items: stretch;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 20rem;
+}
+
+.trajectory-view__stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: #01030a;
+}
+
+.trajectory-view__host {
+  position: absolute;
+  inset: 0;
+}
+
+/* X3DOM sizes its canvas from the <x3d> element; let it fill the stage. */
+.trajectory-view__host x3d,
+.trajectory-view__host .trajectory-view__x3d {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.trajectory-view__host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+.trajectory-view__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 0.85rem;
+  color: #8b949e;
+  pointer-events: none;
+}
+
+/* Overlays */
+.trajectory-view__views {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.trajectory-view__view {
+  padding: 0.25rem 0.6rem;
+  font: inherit;
+  font-size: 0.75rem;
+  color: #8b949e;
+  background: rgba(1, 3, 10, 0.75);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  cursor: pointer;
+}
+
+.trajectory-view__view:hover:not(:disabled),
+.trajectory-view__view:focus-visible {
+  color: #e6edf3;
+  border-color: rgba(0, 229, 255, 0.7);
+}
+
+.trajectory-view__view[aria-pressed="true"] {
+  color: #00e5ff;
+  border-color: #00e5ff;
+}
+
+.trajectory-view__view:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.trajectory-view__legend {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  list-style: none;
+  font-size: 0.7rem;
+  color: #8b949e;
+  background: rgba(1, 3, 10, 0.75);
+  pointer-events: none;
+}
+
+.trajectory-view__key {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.trajectory-view__key::before {
+  content: "";
+  width: 1.1rem;
+  height: 2px;
+  background: var(--tv-key);
+}
+
+/* Match COLORS in trajectoryScene.js */
+.trajectory-view__key--flown {
+  --tv-key: #00e5ff;
+}
+
+.trajectory-view__key--predicted {
+  --tv-key: #ffb840;
+}
+
+/* Dashed, like the ghost ring. */
+.trajectory-view__key--target {
+  --tv-key: repeating-linear-gradient(90deg, rgba(204, 230, 255, 0.6) 0 3px, transparent 3px 6px);
+}
+
+.trajectory-view__key--karman {
+  --tv-key: #737f8f;
+}
+
+.trajectory-view__hint {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  margin: 0;
+  font-size: 0.7rem;
+  color: #6e7681;
+  pointer-events: none;
+}

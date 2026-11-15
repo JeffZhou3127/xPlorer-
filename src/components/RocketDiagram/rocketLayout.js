@@ -83,3 +83,27 @@ export const maxSrbFuel = (stages) => {
   const bodyH = GROUND_Y - limitTop - SRB_FIXED_HEIGHT;
   return Math.max(0, Math.floor((bodyH / lengthPerM3(SRB_HALF)) * SRB_DENSITY * 2));
 };
+
+// Rocket centerline. The blueprint and the flight view both draw the rocket around it.
+export const CENTER_X = 150;
+
+// Spacecraft on top of the stack: service module inside a fairing, crew capsule, nose cone.
+export const FAIRING_HEIGHT = 52;
+export const CAPSULE_HEIGHT = 32;
+export const NOSE_HEIGHT = 24;
+const SPACECRAFT_HEIGHT = FAIRING_HEIGHT + CAPSULE_HEIGHT + NOSE_HEIGHT;
+
+// Highest point of the whole rocket (spacecraft nose or SRB nose). The bottom is GROUND_Y.
+export const rocketTop = (stages, srbs) => {
+  const { stackTop } = layoutStages(stages);
+  const srbTop = srbs
+    ? GROUND_Y - SRB_FIXED_HEIGHT - srbBodyHeight(srbs.fuel)
+    : Infinity;
+  return Math.min(stackTop - SPACECRAFT_HEIGHT, srbTop);
+};
+
+// Exhaust plumes below the nozzles. A plume's length at full throttle grows with the
+// nozzle exit; FLAME_ROOM is the longest any plume gets, so views can leave space for it.
+export const flameLength = (exitHalf) => 16 + exitHalf * 2.5;
+export const SRB_FLAME_LENGTH = 70;
+export const FLAME_ROOM = Math.max(flameLength(THROAT_HALF * Math.sqrt(100)), SRB_FLAME_LENGTH);

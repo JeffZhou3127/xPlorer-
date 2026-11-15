@@ -1,0 +1,141 @@
+.pitch-control {
+  --pc-accent: #00e5ff;
+
+  margin: 0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.04);
+}
+
+.pitch-control__title {
+  padding: 0 0.4rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--pc-accent);
+}
+
+.pitch-control__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pitch-control__label {
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+.pitch-control__readout {
+  font-variant-numeric: tabular-nums;
+  color: #e6edf3;
+}
+
+/* Custom track so the fill runs from the centre (0) to the thumb instead of from the
+   left end. --pc-from / --pc-to (0–1) are set inline; the stops are offset by half a
+   thumb so the fill ends at the thumb's centre. */
+.pitch-control__slider {
+  --pc-thumb: 1rem;
+  --pc-track: rgba(0, 229, 255, 0.15);
+  --pc-a: calc(var(--pc-thumb) / 2 + (100% - var(--pc-thumb)) * var(--pc-from, 0.5));
+  --pc-b: calc(var(--pc-thumb) / 2 + (100% - var(--pc-thumb)) * var(--pc-to, 0.5));
+
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 1.25rem;
+  margin: 0;
+  background:
+    /* centre (0) mark */
+    linear-gradient(rgba(230, 237, 243, 0.6), rgba(230, 237, 243, 0.6)) center / 2px 0.9rem no-repeat,
+    linear-gradient(
+        to right,
+        var(--pc-track) var(--pc-a),
+        var(--pc-accent) var(--pc-a) var(--pc-b),
+        var(--pc-track) var(--pc-b)
+      )
+      center / 100% 0.35rem no-repeat;
+  cursor: pointer;
+}
+
+.pitch-control__slider::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.pitch-control__slider::-moz-range-track {
+  background: transparent;
+}
+
+.pitch-control__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--pc-thumb);
+  height: var(--pc-thumb);
+  border: none;
+  border-radius: 50%;
+  background: var(--pc-accent);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+.pitch-control__slider::-moz-range-thumb {
+  width: var(--pc-thumb);
+  height: var(--pc-thumb);
+  border: none;
+  border-radius: 50%;
+  background: var(--pc-accent);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+.pitch-control__slider:focus-visible {
+  outline: none;
+}
+
+.pitch-control__slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #e6edf3;
+  outline-offset: 2px;
+}
+
+.pitch-control__slider:focus-visible::-moz-range-thumb {
+  outline: 2px solid #e6edf3;
+  outline-offset: 2px;
+}
+
+.pitch-control__scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+.pitch-control__hold {
+  align-self: flex-start;
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--pc-accent);
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  cursor: pointer;
+}
+
+.pitch-control__hold:hover:not(:disabled),
+.pitch-control__hold:focus-visible {
+  background: rgba(0, 229, 255, 0.12);
+}
+
+.pitch-control__hold:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pitch-control__note {
+  margin: 0;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #8b949e;
+}
