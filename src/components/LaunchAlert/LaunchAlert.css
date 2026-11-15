@@ -1,0 +1,120 @@
+.launch-alert {
+  --la-accent: #00e5ff;
+  --la-warning: #f2b84b;
+  --la-text: #e6edf3;
+
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.launch-alert__panel {
+  box-sizing: border-box;
+  width: min(32rem, 100%);
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(242, 184, 75, 0.6);
+  background: rgba(242, 184, 75, 0.05);
+  box-shadow: 0 0 24px rgba(242, 184, 75, 0.12);
+  animation: launch-alert-in 0.5s ease-out both;
+}
+
+.launch-alert__title {
+  margin: 0;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--la-accent);
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.launch-alert__warning {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--la-text);
+}
+
+.launch-alert__icon {
+  margin-right: 0.5rem;
+  color: var(--la-warning);
+}
+
+.launch-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.launch-alert__back,
+.launch-alert__continue {
+  padding: 0.6rem 1.75rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* Neutral, so Continue stays the main action. */
+.launch-alert__back {
+  color: #c9d1d9;
+  background: transparent;
+  border: 1px solid #30363d;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.launch-alert__back:hover,
+.launch-alert__back:focus-visible {
+  color: #e6edf3;
+  border-color: #8b949e;
+}
+
+.launch-alert__continue {
+  color: #0d1117;
+  background: var(--la-accent);
+  border: 1px solid var(--la-accent);
+}
+
+.launch-alert__continue:hover,
+.launch-alert__continue:focus-visible {
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.6);
+}
+
+.launch-alert__continue:focus-visible {
+  outline: 1px solid var(--la-accent);
+  outline-offset: 4px;
+}
+
+@keyframes launch-alert-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-alert__panel {
+    animation: none;
+  }
+
+  .launch-alert__back {
+    transition: none;
+  }
+}

@@ -1,18 +1,13 @@
 import { useNavigate } from "react-router";
-import StepNav from "../../components/StepNav/StepNav.jsx";
+import LaunchAlert from "../../components/LaunchAlert/LaunchAlert.jsx";
 
-// Mission 1, step 3 (placeholder). Reached from the rocket designer's "Continue" button.
-// There is no next step yet, so it only has a Back button.
+// Mission 1, step 3: confirm the designs before launch. The alert holds both buttons:
+// Back returns to the rocket designer, Continue goes on to the launch (step 4).
 const M1S3 = () => {
   const navigate = useNavigate();
 
   return (
-    <>
-      <main>
-        <h1>Mission 1 — Step 3</h1>
-      </main>
-      <StepNav onBack={() => navigate("/m1-s2")} />
-    </>
+    <LaunchAlert onBack={() => navigate("/m1-s2")} onContinue={() => navigate("/m1-s4")} />
   );
 };
 
