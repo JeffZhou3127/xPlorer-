@@ -1,0 +1,218 @@
+.experiment-card {
+  --ec-accent: #00e5ff;
+  --ec-success: #3fb950;
+  --ec-warn: #e3b341;
+  --ec-muted: #8b949e;
+
+  box-sizing: border-box;
+  margin: 0;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.04);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.experiment-card--complete {
+  border-color: rgba(63, 185, 80, 0.7);
+  background: rgba(63, 185, 80, 0.05);
+  box-shadow: 0 0 18px rgba(63, 185, 80, 0.15);
+}
+
+.experiment-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.experiment-card__number {
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: rgba(0, 229, 255, 0.45);
+}
+
+.experiment-card--complete .experiment-card__number {
+  color: rgba(63, 185, 80, 0.7);
+}
+
+.experiment-card__title {
+  margin: 0;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ec-accent);
+}
+
+.experiment-card__instrument {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ec-muted);
+}
+
+.experiment-card__badge {
+  margin-left: auto;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ec-success);
+  border: 1px solid var(--ec-success);
+}
+
+.experiment-card__description {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #c9d1d9;
+}
+
+.experiment-card__params {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.experiment-card__run {
+  padding: 0.5rem 1rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--ec-accent);
+  background: transparent;
+  border: 1px solid var(--ec-accent);
+}
+
+.experiment-card__run:not(:disabled):hover,
+.experiment-card__run:not(:disabled):focus-visible {
+  background: rgba(0, 229, 255, 0.12);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+}
+
+.experiment-card__run:disabled {
+  cursor: progress;
+  color: var(--ec-muted);
+  border-color: #30363d;
+}
+
+.experiment-card__result:empty {
+  display: none;
+}
+
+/* A sweep across a thin bar while the instrument collects data. */
+.experiment-card__scan {
+  height: 0.4rem;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.8), transparent) no-repeat;
+  background-size: 40% 100%;
+  background-color: rgba(0, 229, 255, 0.12);
+  animation: experiment-card-scan 0.9s linear infinite;
+}
+
+.experiment-card__result--stale {
+  opacity: 0.55;
+}
+
+.experiment-card__quality-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--ec-muted);
+}
+
+.experiment-card__quality-row strong {
+  color: #e6edf3;
+}
+
+.experiment-card__bar {
+  position: relative;
+  height: 0.4rem;
+  background: rgba(0, 229, 255, 0.12);
+}
+
+.experiment-card__fill {
+  height: 100%;
+  background: var(--ec-warn);
+}
+
+.experiment-card__fill--pass {
+  background: var(--ec-success);
+}
+
+/* The quality needed to complete the experiment. */
+.experiment-card__pass {
+  position: absolute;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  width: 1px;
+  background: #e6edf3;
+}
+
+.experiment-card__findings {
+  margin: 0.75rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 1rem;
+}
+
+.experiment-card__finding dt {
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ec-muted);
+}
+
+.experiment-card__finding dd {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #e6edf3;
+}
+
+.experiment-card__summary,
+.experiment-card__hint,
+.experiment-card__stale {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.experiment-card__summary {
+  color: #e6edf3;
+}
+
+.experiment-card__hint {
+  color: var(--ec-warn);
+}
+
+.experiment-card__stale {
+  font-style: italic;
+  color: var(--ec-muted);
+}
+
+@keyframes experiment-card-scan {
+  from {
+    background-position: -40% 0;
+  }
+  to {
+    background-position: 140% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experiment-card {
+    transition: none;
+  }
+
+  .experiment-card__scan {
+    animation: none;
+    background-position: 50% 0;
+  }
+}

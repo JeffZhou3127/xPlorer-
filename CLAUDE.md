@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`), orbit reached (`/m1-s5`, from goal 2's Continue; sets up docking), docking (`/m1-s6`, see below), refueling (`/m1-s7`, from the docked Continue; see below), Mars ejection burn (`/m1-s8`, from Undock; see below), Mars orbit insertion (`/m1-s9`, from M1S8's Continue once Mars is reached; see below) and mission failure (`/mission-failure`, reached from the flight panel, a systems failure in M1S8, or M1S9). Each step's Continue leads to the next.
+xPlorer+ is an early-stage React app. Routes: home (`/`), mission objective (`/scenario1`), spacecraft designer (`/m1-s1`), rocket designer (`/m1-s2`), launch confirmation (`/m1-s3`), flight panel (`/m1-s4`), orbit reached (`/m1-s5`, from goal 2's Continue; sets up docking), docking (`/m1-s6`, see below), refueling (`/m1-s7`, from the docked Continue; see below), Mars ejection burn (`/m1-s8`, from Undock; see below), Mars orbit insertion (`/m1-s9`, from M1S8's Continue once Mars is reached; see below), science experiments (`/m1-s10`, from M1S9's Continue once captured; see below) and mission failure (`/mission-failure`, reached from the flight panel, a systems failure in M1S8, or M1S9). Each step's Continue leads to the next.
 
 ## Commands
 
@@ -119,5 +119,12 @@ Stage conventions:
 
 - **Model** (`src/utils/marsArrival.js`): the spacecraft starts `START_ALTITUDE_KM` (10,000 km) up on a hyperbola for the arrival v∞ (`DEFAULT_V_INF` without route state), periapsis `PERIAPSIS_ALTITUDE_KM` (1,000 km) on the flight frame's +y, which `MARS_SCENE` maps to Mars's north pole (flight plane = polar x–z plane).
 - The approach coasts at a warp that takes ~10 real seconds, engines locked and pointed retrograde (`coastRetrograde`), until 60 s before perigee. Then the throttle unlocks (engines start off).
-- **Goal**: engines off with perigee in `TARGET_PERIGEE_KM` (900–1,100) and apogee in `TARGET_APOGEE_KM` (16,000–18,000); ~1.15 km/s of braking at the default v∞. No next step yet.
+- **Goal**: engines off with perigee in `TARGET_PERIGEE_KM` (900–1,100) and apogee in `TARGET_APOGEE_KM` (16,000–18,000); ~1.15 km/s of braking at the default v∞. Once met, the goal card's Continue leads to `/m1-s10`.
 - **Failure**: crash, fuel or escape → `/mission-failure` with `retryState`; `MissionFailure` retries `/m1-s9` or redesigns the rocket (`isMarsFailure`, `explainCaptureFailure` in `missionFailure.js`).
+
+## Science experiments (`/m1-s10`)
+
+`M1S10.jsx`: `ScienceBoard` (the "Science Experiments" header, intro, progress and a card grid) with an `ExperimentCard` per experiment, and a `StepNav` whose Continue is blocked until `REQUIRED_EXPERIMENTS` (2) are complete. No next step yet: Continue goes home.
+
+- **Model** (`src/utils/scienceExperiments.js`, no React): `EXPERIMENTS` lists nine experiments (camera, spectrometer, magnetometer, neutrons, radar, thermal IR, radio occultation, moon imaging, gravity), each `{ id, title, instrument, description, params, defaults, run }`. `params` entries are `"range"` (`min`/`max`/`unit`, rendered with `RangeField`) or `"select"` (`options`, `SelectField`). `run(values)` is deterministic and returns `{ quality (0–100), findings: [{ label, value }], summary, hint }`. Altitudes refer to the M1S9 science orbit (1,000 × 17,000 km). Defaults give poor data on purpose; each has settings that reach 100.
+- An experiment is **complete** once any run reaches `COMPLETE_QUALITY` (60) and stays complete. Each run takes `RUN_MS` ("Collecting data…"); results are kept with their settings, so a card dims its result as stale when the settings change.

@@ -34,7 +34,7 @@ const DAYS_PER_SECOND = 25;
 const COAST_PAST_CLOSEST = 15 * DAY;
 
 const DEFAULT_ANGLE = 0;
-const DEFAULT_BURN = 3600;
+const DEFAULT_BURN = 0;
 
 const millionKm = (m) => m / 1e9;
 

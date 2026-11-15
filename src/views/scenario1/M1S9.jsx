@@ -209,6 +209,7 @@ const M1S9 = () => {
                   note={goalNote(coasting, coastWarp, flight, readouts)}
                   reached={reached}
                   reachedText={`Captured! Engines shut down in a Mars orbit with the perigee in ${windowText(TARGET_PERIGEE_KM)} and the apogee in ${windowText(TARGET_APOGEE_KM)}.`}
+                  action={{ label: "Continue", onClick: () => navigate("/m1-s10") }}
                 />
               </div>
             </FlightControls>

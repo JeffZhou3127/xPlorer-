@@ -1,0 +1,64 @@
+.science-board {
+  box-sizing: border-box;
+  min-height: 100vh;
+  /* The bottom padding clears the floating Back / Continue buttons. */
+  padding: 2.5rem 2rem 6rem;
+}
+
+.science-board__header {
+  max-width: 48rem;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+.science-board__title {
+  margin: 0 0 1rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.8rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #00e5ff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.science-board__intro {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #c9d1d9;
+}
+
+.science-board__progress {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #8b949e;
+}
+
+.science-board__progress strong {
+  color: #e6edf3;
+}
+
+.science-board__progress--ready,
+.science-board__progress--ready strong {
+  color: #3fb950;
+}
+
+.science-board__grid {
+  max-width: 90rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 500px) {
+  .science-board {
+    padding: 1.5rem 1rem 6rem;
+  }
+
+  .science-board__grid {
+    grid-template-columns: 1fr;
+  }
+}
