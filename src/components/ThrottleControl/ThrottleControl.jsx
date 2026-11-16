@@ -10,6 +10,8 @@ import "./ThrottleControl.css";
 // apogee): the message replaces the lever and the restart button is disabled.
 // `canShutDown` false (e.g. during the countdown) disables the shut-down button; the
 // lever still works.
+// `engineLabel`, `startLabel` and `note` replace the lever's label, the restart button's
+// text and the note underneath (for a craft that isn't a liquid-fuelled rocket).
 const ThrottleControl = ({
   throttle,
   onChange,
@@ -18,6 +20,9 @@ const ThrottleControl = ({
   hasSrbs,
   locked = null,
   canShutDown = true,
+  engineLabel = "Liquid engines",
+  startLabel = "Restart engines",
+  note,
 }) => {
   const id = useId();
   const running = enginesOn && !locked;
@@ -56,7 +61,7 @@ const ThrottleControl = ({
           />
           <div className="throttle-control__readout">
             <label className="throttle-control__label" htmlFor={id}>
-              Liquid engines
+              {engineLabel}
             </label>
             <output className="throttle-control__value" htmlFor={id}>
               {throttle}%
@@ -73,13 +78,17 @@ const ThrottleControl = ({
         disabled={Boolean(locked) || (running && !canShutDown)}
         onClick={() => onEnginesChange(!enginesOn)}
       >
-        {running ? "Shut down engines" : "Restart engines"}
+        {running ? "Shut down engines" : startLabel}
       </button>
 
       <p className="throttle-control__note">
-        Only liquid-fuelled engines can throttle or shut down.
-        {running && !canShutDown && " They can be shut down after liftoff."}
-        {hasSrbs && " The SRBs burn at full thrust until they run out."}
+        {note ?? (
+          <>
+            Only liquid-fuelled engines can throttle or shut down.
+            {running && !canShutDown && " They can be shut down after liftoff."}
+            {hasSrbs && " The SRBs burn at full thrust until they run out."}
+          </>
+        )}
       </p>
     </fieldset>
   );

@@ -51,6 +51,14 @@
   stroke: none;
 }
 
+.fv-mark {
+  fill: #00e5ff;
+  opacity: 0.75;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .fv-tick--minor {
   opacity: 0.35;
 }

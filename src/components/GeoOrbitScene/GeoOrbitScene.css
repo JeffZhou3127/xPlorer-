@@ -1,0 +1,62 @@
+/* Shares the blueprint line styles (.rd-*) from RocketDiagram.css. */
+.geo-orbit {
+  --rd-line: #fff;
+  --rd-bg: #000;
+}
+
+.geo-orbit * {
+  vector-effect: non-scaling-stroke;
+}
+
+.geo-orbit__orbit {
+  fill: none;
+  stroke: #00e5ff;
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+  opacity: 0.7;
+}
+
+.geo-orbit__earth {
+  fill: rgba(0, 229, 255, 0.05);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.geo-orbit__tether {
+  stroke: #00e5ff;
+  stroke-width: 0.75;
+  stroke-dasharray: 2 2;
+  opacity: 0.8;
+}
+
+.geo-orbit__spot {
+  fill: #00e5ff;
+}
+
+.geo-orbit__label {
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 4.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  fill: #8b949e;
+}
+
+/* One turn anticlockwise (the way the CubeSat orbits and Earth spins, seen from above
+   the north pole) about Earth's centre (CX, CY in GeoOrbitScene.jsx). */
+.geo-orbit__spin {
+  transform-box: view-box;
+  transform-origin: 200px 208px;
+  animation: geo-orbit-spin 12s linear infinite;
+}
+
+@keyframes geo-orbit-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .geo-orbit__spin {
+    animation: none;
+  }
+}

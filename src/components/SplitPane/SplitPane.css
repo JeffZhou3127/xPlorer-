@@ -5,6 +5,10 @@
   height: 100vh;
 }
 
+.split-pane--narrow-left {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
 .split-pane__left,
 .split-pane__right {
   box-sizing: border-box;

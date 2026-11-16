@@ -1,0 +1,13 @@
+/* Builds on OrbitRaiseView.css. The drawing covers a wider area than part 1's, so the
+   labels are a little larger to read at the same size. */
+.orbit-circularize .orbit-raise__label {
+  font-size: 7px;
+}
+
+/* Where the perigee was before the burn. */
+.orbit-raise__apogee .orbit-circularize__old {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 0.75;
+  opacity: 0.5;
+}

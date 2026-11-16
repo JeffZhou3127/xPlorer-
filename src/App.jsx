@@ -21,6 +21,10 @@ import M2S4 from "./views/scenario2/M2S4.jsx";
 import M2S6 from "./views/scenario2/M2S6.jsx";
 import M2S8 from "./views/scenario2/M2S8.jsx";
 import M2S9 from "./views/scenario2/M2S9.jsx";
+import Scenario3 from "./views/scenario3/Scenario3.jsx";
+import M3S1 from "./views/scenario3/M3S1.jsx";
+import M3S2A4 from "./views/scenario3/M3S2A4.jsx";
+import M3S3 from "./views/scenario3/M3S3.jsx";
 
 const App = () => {
   // Keyed on the location so navigating to the same URL again (a flight step's Redo,
@@ -58,6 +62,12 @@ const App = () => {
       <Route path="/m2-s8" element={<M2S8 />} />
       <Route path="/m2-s9" element={<M2S9 />} />
       <Route path="/m2-s10" element={<M1S14 key="moon" trip="moon" />} />
+      <Route path="/scenario3" element={<Scenario3 />} />
+      <Route path="/m3-s1" element={<M3S1 />} />
+      {/* Steps 2 and 4 share the flown CubeSat view; `step` picks the goal. */}
+      <Route path="/m3-s2" element={<M3S2A4 key="raise" step="raise" />} />
+      <Route path="/m3-s3" element={<M3S3 />} />
+      <Route path="/m3-s4" element={<M3S2A4 key="circularize" step="circularize" />} />
     </Routes>
   );
 };

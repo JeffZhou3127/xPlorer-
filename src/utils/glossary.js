@@ -169,6 +169,26 @@ export const GLOSSARY = {
     term: "Orbital mechanics",
     text: "How things move under gravity in space. An orbit is falling around a planet while moving sideways fast enough to keep missing it. Speeding up raises the far side of your orbit, slowing down lowers it.",
   },
+  geostationaryOrbit: {
+    term: "Geostationary orbit",
+    text: "A circular orbit 35,786 km above the equator. A satellite there circles Earth once a day, exactly as fast as Earth turns, so it seems to hang still over one spot. Communications and weather satellites use it.",
+  },
+  prograde: {
+    term: "Prograde",
+    text: "In the direction the spacecraft is moving along its orbit. A prograde burn speeds it up, raising the opposite side of the orbit; a retrograde burn (the other way) slows it down and lowers it.",
+  },
+  retrograde: {
+    term: "Retrograde",
+    text: "Against the direction the spacecraft is moving along its orbit. A retrograde burn slows it down, lowering the opposite side of the orbit.",
+  },
+  attitude: {
+    term: "Attitude",
+    text: "Which way the spacecraft is pointing. The engine pushes along the nose, so the attitude decides what a burn does to the orbit.",
+  },
+  orbitalPeriod: {
+    term: "Orbital period",
+    text: "How long one trip around the orbit takes. Higher orbits are slower: about 1½ hours at 150 km, and exactly one day (23 h 56 min) at geostationary height.",
+  },
   polarOrbit: {
     term: "Polar orbit",
     text: "An orbit that passes over (or near) both poles. As the planet turns underneath, a spacecraft in a polar orbit eventually flies over every part of the surface, which is ideal for mapping and science.",

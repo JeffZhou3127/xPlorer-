@@ -5,7 +5,6 @@ import RocketStats from "../../components/RocketStats/RocketStats.jsx";
 import RocketDiagram from "../../components/RocketDiagram/RocketDiagram.jsx";
 import RocketForm from "../../components/RocketForm/RocketForm.jsx";
 import StepNav from "../../components/StepNav/StepNav.jsx";
-import DevJump from "../../components/DevJump/DevJump.jsx"; // DEV ONLY: remove with the element below
 import { overBudgetReason } from "../../utils/format.js";
 import { useRocketDesign } from "../../hooks/useRocketDesign.js";
 import { selectSpacecraftMass } from "../../store/spacecraftSlice.js";
@@ -32,7 +31,6 @@ const M1S2 = () => {
         onContinue={() => navigate("/m1-s3")}
         blockedReason={overBudgetReason(stats.totalCost, BUDGET)}
       />
-      <DevJump /> {/* DEV ONLY: remove with the import above */}
     </>
   );
 };

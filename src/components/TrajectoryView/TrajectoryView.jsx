@@ -45,7 +45,7 @@ const apsisIndex = (path, which) => {
 const TrajectoryView = ({ flight, showTarget = true, aside, scene = EARTH_SCENE }) => {
   const hostRef = useRef(null);
   const partsRef = useRef(null);
-  const drawnRef = useRef({ trackLength: -1, predictedAt: 0, apsis: null, rocket: null });
+  const drawnRef = useRef({ track: null, predictedAt: 0, apsis: null, rocket: null });
   const [status, setStatus] = useState("loading"); // "loading" | "ready" | "error"
   const [view, setView] = useState(scene.views[0].id);
   const { toScene } = scene;
@@ -69,7 +69,7 @@ const TrajectoryView = ({ flight, showTarget = true, aside, scene = EARTH_SCENE 
       ...Object.fromEntries(Object.keys(scene.landmarks).map((part) => [part, find(`[data-part="${part}"]`)])),
       views: Object.fromEntries(scene.views.map(({ id }) => [id, find(`[data-view="${id}"]`)])),
     };
-    drawnRef.current = { trackLength: -1, predictedAt: 0, apsis: null, rocket: null };
+    drawnRef.current = { track: null, predictedAt: 0, apsis: null, rocket: null };
 
     loadX3dom()
       .then((x3dom) => {
@@ -99,9 +99,10 @@ const TrajectoryView = ({ flight, showTarget = true, aside, scene = EARTH_SCENE 
     setAttributes(parts.rocket, { translation: pointString(position) });
     setAttributes(parts.target, { render: String(showTarget) });
 
-    // The flown path: the recorded track plus the rocket's current position.
-    if (flight.track.length !== drawn.trackLength) {
-      drawn.trackLength = flight.track.length;
+    // The flown path: the recorded track plus the rocket's current position. A flight
+    // copies its track array whenever it adds a point (and may drop old ones).
+    if (flight.track !== drawn.track) {
+      drawn.track = flight.track;
       const { point, coordIndex } = lineSet([[...flight.track.map(toScene), position]]);
       setAttributes(parts.flownCoords, { point });
       setAttributes(parts.flown, { coordIndex });

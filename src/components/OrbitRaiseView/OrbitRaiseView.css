@@ -1,0 +1,135 @@
+/* Fills the right pane, like ReentryView. Shares the blueprint line styles (.rd-*) from
+   RocketDiagram.css. */
+.orbit-raise {
+  position: relative;
+  flex: 1;
+  min-height: 18rem;
+  overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: #000;
+}
+
+.orbit-raise__svg {
+  --rd-line: #fff;
+  --rd-bg: #000;
+
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.orbit-raise__svg * {
+  vector-effect: non-scaling-stroke;
+}
+
+.orbit-raise__earth {
+  fill: rgba(0, 229, 255, 0.04);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.orbit-raise__orbit {
+  fill: none;
+  stroke: #00e5ff;
+  stroke-width: 1.5;
+}
+
+.orbit-raise__label {
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 5px;
+  letter-spacing: 0.15em;
+  text-anchor: middle;
+  text-transform: uppercase;
+  fill: #fff;
+}
+
+.orbit-raise__label--earth {
+  fill: #8b949e;
+}
+
+.orbit-raise__label--start {
+  text-anchor: start;
+}
+
+.orbit-raise__burn-point circle,
+.orbit-raise__apogee circle {
+  fill: #fff;
+}
+
+.orbit-raise__apogee {
+  animation: orbit-raise-appear 0.4s ease-out both;
+}
+
+.orbit-raise__velocity line {
+  stroke: #00e5ff;
+  stroke-width: 1.5;
+}
+
+.orbit-raise__velocity path {
+  fill: #00e5ff;
+}
+
+.orbit-raise__plume {
+  fill: #ff8c2e;
+  opacity: 0.85;
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+  animation: orbit-raise-flicker 0.11s ease-in-out infinite alternate;
+}
+
+.orbit-raise__readout {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #00e5ff;
+  background: rgba(1, 3, 10, 0.75);
+  pointer-events: none;
+}
+
+.orbit-raise__legend {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  list-style: none;
+  font-size: 0.7rem;
+  color: #8b949e;
+  background: rgba(1, 3, 10, 0.75);
+  pointer-events: none;
+}
+
+@keyframes orbit-raise-flicker {
+  from {
+    transform: scaleX(0.8);
+  }
+  to {
+    transform: scaleX(1.08);
+  }
+}
+
+@keyframes orbit-raise-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-raise__plume,
+  .orbit-raise__apogee {
+    animation: none;
+  }
+}

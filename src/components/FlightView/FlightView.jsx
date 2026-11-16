@@ -61,14 +61,39 @@ const Debris = ({ separation }) => {
   );
 };
 
+// Share of the ring's radius kept clear inside it for `marks` labels.
+const MARK_SPACE = 0.16;
+
 // `throttle` (0–1) and `srbsFiring` show the exhaust plumes. `aside` (e.g. fuel gauges)
 // sits to the right of the drawing. `paused` freezes the plumes' flicker.
 // `separation` ({ fromStages, fromSrbs, kind: "stage" | "srbs", elapsed }) describes the
 // latest staging: for STAGING_DURATION seconds after it, the spent part falls away while
 // the rest of the rocket stays put, and the view eases over to fit the smaller rocket.
-const FlightView = ({ stages, srbs, pitch, throttle = 0, srbsFiring = false, separation, paused = false, aside }) => {
-  const now = viewFor(stages, srbs);
-  const staging = separation && separation.elapsed < STAGING_DURATION ? separation : null;
+// Another craft instead of the rocket: `craft` ({ body: SVG node drawn nose up, pivot:
+// { x, y } it turns about, radius: furthest it reaches from there }); `stages`, `srbs`,
+// `throttle`, `srbsFiring` and `separation` are then ignored (the body draws its own
+// plume). `marks` ([{ angle, label }]) names directions inside the ring (e.g. prograde
+// at 0°), and `label` replaces the accessible description.
+const FlightView = ({
+  stages,
+  srbs,
+  pitch,
+  throttle = 0,
+  srbsFiring = false,
+  separation,
+  paused = false,
+  aside,
+  craft = null,
+  marks = [],
+  label: ariaLabel,
+}) => {
+  const now = craft
+    ? {
+        pivotY: craft.pivot.y,
+        ring: (craft.radius + RING_GAP) / (marks.length ? 1 - MARK_SPACE : 1),
+      }
+    : viewFor(stages, srbs);
+  const staging = !craft && separation && separation.elapsed < STAGING_DURATION ? separation : null;
 
   let pivotY = now.pivotY;
   let ring = now.ring;
@@ -81,7 +106,7 @@ const FlightView = ({ stages, srbs, pitch, throttle = 0, srbsFiring = false, sep
     ring = lerp(before.ring, now.ring, ease);
   }
 
-  const pivot = { x: CENTER_X, y: pivotY };
+  const pivot = { x: craft ? craft.pivot.x : CENTER_X, y: pivotY };
   // Tight margin: the ring nearly fills the drawing, so the rocket is as big as it can be.
   const half = ring * (1 + LABEL_SPACE) + 2;
   const fontSize = ring * 0.06;
@@ -97,7 +122,9 @@ const FlightView = ({ stages, srbs, pitch, throttle = 0, srbsFiring = false, sep
         className="flight-view__svg"
         viewBox={`${pivot.x - half} ${pivot.y - half} ${half * 2} ${half * 2}`}
         role="img"
-        aria-label={`Rocket pitched ${Math.abs(Math.round(pitch))} degrees ${pitch < 0 ? "left" : "right"} of vertical`}
+        aria-label={
+          ariaLabel ?? `Rocket pitched ${Math.abs(Math.round(pitch))} degrees ${pitch < 0 ? "left" : "right"} of vertical`
+        }
       >
         <defs>
           <pattern id="fv-grid-minor" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -154,13 +181,42 @@ const FlightView = ({ stages, srbs, pitch, throttle = 0, srbsFiring = false, sep
           );
         })}
 
+        {/* Named directions, just inside the ring, written along it. */}
+        {marks.map(({ angle, label: text }) => {
+          const rad = (angle * Math.PI) / 180;
+          const r = ring - fontSize * 1.5;
+          const x = pivot.x + r * Math.sin(rad);
+          const y = pivot.y - r * Math.cos(rad);
+          // Turned along the ring, but never upside down.
+          const a = ((angle % 360) + 360) % 360;
+          const turn = a > 90 && a < 270 ? a - 180 : a;
+          return (
+            <text
+              key={text}
+              className="fv-mark"
+              x={x}
+              y={y}
+              fontSize={fontSize * 0.8}
+              textAnchor="middle"
+              dominantBaseline="central"
+              transform={`rotate(${turn} ${x} ${y})`}
+            >
+              {text}
+            </text>
+          );
+        })}
+
         {/* The rocket, any falling debris and the nose marker on the ring turn together. */}
         <g transform={`rotate(${pitch} ${pivot.x} ${pivot.y})`}>
           {staging && <Debris separation={staging} />}
-          <g transform={shift ? `translate(0 ${shift})` : undefined}>
-            <line className="rd-center" x1={CENTER_X} x2={CENTER_X} y1={now.top - 14} y2={GROUND_Y + 14} />
-            <RocketBody stages={stages} srbs={srbs} throttle={throttle} srbsFiring={srbsFiring} />
-          </g>
+          {craft ? (
+            craft.body
+          ) : (
+            <g transform={shift ? `translate(0 ${shift})` : undefined}>
+              <line className="rd-center" x1={CENTER_X} x2={CENTER_X} y1={now.top - 14} y2={GROUND_Y + 14} />
+              <RocketBody stages={stages} srbs={srbs} throttle={throttle} srbsFiring={srbsFiring} />
+            </g>
+          )}
           <path
             className="fv-marker"
             d={`M ${pivot.x} ${pivot.y - ring + tick * 2.5}
