@@ -1,7 +1,11 @@
 import { EARTH_GM, EARTH_RADIUS, G0 } from "./rocketPhysics.js";
+import { SCALED_EARTH_GM, SCALED_EARTH_RADIUS } from "./landerPhysics.js";
 
-// Earth reentry (mission 1, step 14): the capsule, its service module gone, falls into the
-// atmosphere on the way back from Mars. No React.
+// Earth reentry (mission 1, step 14; mission 2, step 10): the capsule, its service module
+// gone, falls into the atmosphere on the way back from Mars, or from the Moon to the
+// half-size Earth of mission 2 (same surface gravity, so the same atmosphere). No React.
+// The planet ({ gm, radius }) rides along in the state, so the stepping functions need
+// only the state.
 // 2D, round non-rotating Earth, exponential atmosphere. State in polar form: distance from
 // the centre `r`, downrange angle `theta`, speed `v` and flight path angle `gamma`
 // (radians, negative = descending). Lift comes from the angle of attack and points up
@@ -12,6 +16,10 @@ import { EARTH_GM, EARTH_RADIUS, G0 } from "./rocketPhysics.js";
 // Distances in m, speeds in m/s, time in s, temperatures in °C.
 
 export const ENTRY_ALTITUDE = 120e3; // the entry interface, where the sim starts
+
+// The planets to come home to: mission 1's Earth and mission 2's half-size one.
+export const EARTH_ENTRY = { gm: EARTH_GM, radius: EARTH_RADIUS };
+export const SCALED_EARTH_ENTRY = { gm: SCALED_EARTH_GM, radius: SCALED_EARTH_RADIUS };
 export const DEFAULT_V_INF = 3000; // arriving from Mars, without route state
 
 // Form limits: entry (flight path) angle below the horizon, and angle of attack, degrees.
@@ -70,17 +78,30 @@ export const shieldTemps = (q, aoa) =>
     ]),
   );
 
-// Speed at the entry interface for a hyperbolic excess speed `vInf`.
+// Speed at the entry interface for a hyperbolic excess speed `vInf` (mission 1's Earth).
 export const entrySpeed = (vInf) => Math.sqrt(vInf * vInf + (2 * EARTH_GM) / (EARTH_RADIUS + ENTRY_ALTITUDE));
 
-// The capsule at the entry interface, `angle` degrees below the horizon.
-export const entryState = (vInf, angle) => {
+// Speed and angle below the horizon (degrees) at the entry interface of a path whose
+// perigee (ignoring the air) is `perigeeAltitude` m up at `perigeeSpeed` m/s: energy and
+// angular momentum carry over. A perigee above the interface just grazes it, level.
+export const entryFromPerigee = (perigeeAltitude, perigeeSpeed, planet) => {
+  const rp = planet.radius + Math.min(perigeeAltitude, ENTRY_ALTITUDE);
+  const re = planet.radius + ENTRY_ALTITUDE;
+  const speed = Math.sqrt(perigeeSpeed ** 2 + 2 * planet.gm * (1 / re - 1 / rp));
+  const angle = deg(Math.acos(Math.min(1, (rp * perigeeSpeed) / (re * speed))));
+  return { speed, angle };
+};
+
+// The capsule at `planet`'s entry interface at `speed` m/s, `angle` degrees below the
+// horizon.
+export const entryState = (speed, angle, planet = EARTH_ENTRY) => {
   const temps = shieldTemps(0, 0);
   return {
+    planet,
     t: 0,
-    r: EARTH_RADIUS + ENTRY_ALTITUDE,
+    r: planet.radius + ENTRY_ALTITUDE,
     theta: 0,
-    v: entrySpeed(vInf),
+    v: speed,
     gamma: -rad(angle),
     aoa: 0,
     gLoad: 0,
@@ -96,9 +117,10 @@ export const entryState = (vInf, angle) => {
 };
 
 const step = (s, aoa, dt) => {
-  const altitude = s.r - EARTH_RADIUS;
+  const { gm, radius } = s.planet;
+  const altitude = s.r - radius;
   const rho = density(altitude);
-  const g = EARTH_GM / (s.r * s.r);
+  const g = gm / (s.r * s.r);
   const drag = (0.5 * rho * s.v * s.v) / BALLISTIC_COEFFICIENT;
   // The guidance rolls the lift up while falling and down while climbing (holding the
   // capsule in the atmosphere), so more lift means more control.
@@ -125,20 +147,20 @@ const step = (s, aoa, dt) => {
     temps,
     maxTemps,
     maxG: Math.max(s.maxG, gLoad),
-    dipped: s.dipped || r - EARTH_RADIUS < ENTRY_ALTITUDE - 1e3,
-    lowest: Math.min(s.lowest, r - EARTH_RADIUS),
+    dipped: s.dipped || r - radius < ENTRY_ALTITUDE - 1e3,
+    lowest: Math.min(s.lowest, r - radius),
   };
   if (Object.values(temps).some((c) => c > SHIELD_LIMIT_C)) Object.assign(next, { outcome: "burnup", cause: "heat" });
   else if (gLoad > G_LIMIT) Object.assign(next, { outcome: "burnup", cause: "overload" });
   else if (v < PARACHUTE_SPEED) next.outcome = "splashdown";
-  else if (next.dipped && gamma > 0 && r - EARTH_RADIUS > SKIP_ALTITUDE) next.outcome = "skip";
+  else if (next.dipped && gamma > 0 && r - radius > SKIP_ALTITUDE) next.outcome = "skip";
   else if (next.t >= MAX_TIME) next.outcome = gamma > 0 ? "skip" : "splashdown";
   return next;
 };
 
 // Has the radio blackout begun? Below BLACKOUT_ALTITUDE, or at the bottom of a dip that
 // never got that low.
-export const inBlackout = (s) => s.r - EARTH_RADIUS <= BLACKOUT_ALTITUDE || (s.dipped && s.gamma >= 0);
+export const inBlackout = (s) => s.r - s.planet.radius <= BLACKOUT_ALTITUDE || (s.dipped && s.gamma >= 0);
 
 // Advance `s` by `dt` s at angle of attack `aoa` (degrees), stopping early at an outcome or,
 // with `untilBlackout`, at the start of the blackout.
@@ -160,10 +182,10 @@ export const toBlackout = (s, aoa) => stepEntry(s, aoa, MAX_TIME, { untilBlackou
 
 // Readouts for the stats panel.
 export const entryReadouts = (s) => ({
-  altitude: s.r - EARTH_RADIUS,
+  altitude: s.r - s.planet.radius,
   speed: s.v,
   pathAngle: deg(s.gamma),
-  downrange: s.theta * EARTH_RADIUS,
+  downrange: s.theta * s.planet.radius,
   gLoad: s.gLoad,
   heatFlux: s.heatFlux,
   temps: s.temps,
@@ -174,17 +196,19 @@ export const entryReadouts = (s) => ({
 export const REENTRY_FAILURE_KINDS = ["burnup", "skip"];
 export const isReentryFailure = (failure) => REENTRY_FAILURE_KINDS.includes(failure?.kind);
 
-// The failure record for the mission failure view.
-export const reentryFailure = (s, entryAngle) => {
+// The failure record for the mission failure view; `from` ("Mars" or "Moon") picks the
+// advice.
+export const reentryFailure = (s, entryAngle, from = "Mars") => {
   const hottest = SHIELD_SECTIONS.reduce((a, b) => (s.maxTemps[b.key] > s.maxTemps[a.key] ? b : a));
   return {
     kind: s.outcome,
     cause: s.cause,
     body: "Earth",
+    from,
     time: s.t,
     entryAngle,
     aoa: s.aoa,
-    altitude: s.r - EARTH_RADIUS,
+    altitude: s.r - s.planet.radius,
     speed: s.v,
     lowest: s.lowest,
     maxG: s.maxG,

@@ -5,8 +5,9 @@ import "./StepNav.css";
 // pulled in toward the centre of the screen so the deployed site's branding badge in the
 // corner never covers them. Either button is left out when its handler is not passed.
 // When `blockedReason` is set, Continue uses aria-disabled rather than disabled, so it can
-// still be hovered and focused to show why it is unavailable.
-const StepNav = ({ onBack, onContinue, blockedReason }) => {
+// still be hovered and focused to show why it is unavailable. `continueLabel` replaces
+// Continue's text.
+const StepNav = ({ onBack, onContinue, blockedReason, continueLabel = "Continue →" }) => {
   const tipId = useId();
   const blocked = Boolean(blockedReason);
 
@@ -26,7 +27,7 @@ const StepNav = ({ onBack, onContinue, blockedReason }) => {
             aria-describedby={blocked ? tipId : undefined}
             onClick={blocked ? undefined : onContinue}
           >
-            Continue →
+            {continueLabel}
           </button>
           {blocked && (
             <span className="step-nav__tip" id={tipId} role="tooltip">

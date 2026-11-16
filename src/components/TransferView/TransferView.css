@@ -119,7 +119,9 @@
 .transfer-view__key--ghost::before,
 .transfer-view__key--ghost-earth::before,
 .transfer-view__key--moon::before,
-.transfer-view__key--ghost-moon::before {
+.transfer-view__key--ghost-moon::before,
+.transfer-view__key--burn::before,
+.transfer-view__key--perigee::before {
   width: 0.5rem;
   height: 0.5rem;
   margin: 0 0.3rem;
@@ -148,6 +150,14 @@
 
 .transfer-view__key--ghost-moon {
   --tv-key: rgba(201, 209, 217, 0.4);
+}
+
+.transfer-view__key--burn {
+  --tv-key: #ffffff;
+}
+
+.transfer-view__key--perigee {
+  --tv-key: #ffb840;
 }
 
 .transfer-view__key--planned {

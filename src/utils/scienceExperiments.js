@@ -35,12 +35,13 @@ const groundSpeed = (altitude) => {
   return (MOMENTUM / r) * (R / r);
 };
 
-const clamp01 = (v) => Math.min(1, Math.max(0, v));
+// Scoring helpers, shared with the lunar experiments (lunarExperiments.js).
+export const clamp01 = (v) => Math.min(1, Math.max(0, v));
 // 1 at or below `good`, falling on a log scale to 0 at `bad` (good < bad).
-const logScore = (value, good, bad) => clamp01(Math.log(bad / value) / Math.log(bad / good));
-const percent = (q) => Math.round(clamp01(q) * 100);
+export const logScore = (value, good, bad) => clamp01(Math.log(bad / value) / Math.log(bad / good));
+export const percent = (q) => Math.round(clamp01(q) * 100);
 const km = (v) => `${format(v)} km`;
-const metres = (v) => (v >= 1000 ? `${format(v / 1000, 1)} km` : `${format(v)} m`);
+export const metres = (v) => (v >= 1000 ? `${format(v / 1000, 1)} km` : `${format(v)} m`);
 
 // Shared by the two cameras: each pixel sees CAMERA_IFOV radians.
 const CAMERA_IFOV = 20e-6;

@@ -239,6 +239,10 @@ export const GLOSSARY = {
     term: "Moon angle",
     text: "How far ahead of the spacecraft the Moon is around Earth at the moment of the burn. The spacecraft takes a few days to climb out to the Moon's distance, and the Moon keeps moving meanwhile, so it has to be well ahead at the burn: the burn aims at where the Moon will be, not where it is.",
   },
+  orbitPosition: {
+    term: "Position in orbit",
+    text: "Where the lander is around the Moon at the moment of the burn, measured clockwise from the direction the Moon travels along its orbit around Earth. The burn adds speed along the lander's own direction of travel at that point, and the Moon's gravity bends the path as it leaves, so this decides which way it heads off.",
+  },
   burnDeltaV: {
     term: "Burn Δv",
     text: "How much speed the burn adds, in metres per second. Too little and the spacecraft can't escape the planet or falls short of the target; too much and it crosses the target's orbit too early or too fast. It also decides how much propellant the burn uses.",
@@ -318,6 +322,48 @@ export const GLOSSARY = {
   sampleRate: {
     term: "Sample rate",
     text: "How many measurements the receiver takes each second. Faster sampling means finer detail as the signal slices through the atmosphere.",
+  },
+
+  // Lunar surface science
+  deploymentDistance: {
+    term: "Distance from lander",
+    text: "How far from the lander the crew sets the instrument down. The lander's pumps and fans shake the ground nearby, and its engine blasts dust over everything close by when it lifts off.",
+  },
+  thermalShroud: {
+    term: "Thermal cover",
+    text: "A blanket around the instrument. The lunar surface swings by more than 250 °C between day and night, and metal that heats and cools creaks, which a sensitive instrument hears as noise.",
+  },
+  probeDepth: {
+    term: "Hole depth",
+    text: "How deep the temperature sensors go. The Sun's heat by day and the cold by night soak a little way into the ground; below that the temperature is steady and only the Moon's own heat flows up through it.",
+  },
+  settlingTime: {
+    term: "Wait before measuring",
+    text: "Drilling warms the rock around the hole. The sensors have to wait for that heat to fade before they can measure the Moon's own, much smaller, heat.",
+  },
+  aimElevation: {
+    term: "Aim elevation",
+    text: "How far above the horizon the mirror array points, from 0° (level) to 90° (straight up). Corner mirrors send light straight back the way it came, but only if it arrives within about 17° of where they point.",
+  },
+  standoffDistance: {
+    term: "Distance to rock",
+    text: "The gap between the spectrometer's detector and the rock. The X-rays spread out as they travel, so the count rate drops quickly as the gap grows.",
+  },
+  groundRadarFrequency: {
+    term: "Radar frequency",
+    text: "How fast the radar waves oscillate. Lower frequencies travel deeper into the ground before fading, higher ones show finer layers. The Moon has no ionosphere to get in the way.",
+  },
+  coreDepth: {
+    term: "Core depth",
+    text: "How long a column of soil the drill pulls out. Soil builds up slowly, so deeper layers are older; a long core reaches further back in time.",
+  },
+  euvFilter: {
+    term: "Filter",
+    text: "Lets only one wavelength of light into the camera. Each kind of gas glows at its own wavelengths, so the filter decides what you see.",
+  },
+  sunAngle: {
+    term: "Angle from the Sun",
+    text: "How far across the sky from the Sun the telescope points. There is no air to scatter sunlight into a blue sky, but sunlight still leaks into a telescope pointed near the Sun.",
   },
 
   // Earth reentry

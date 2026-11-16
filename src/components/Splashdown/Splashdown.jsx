@@ -13,8 +13,9 @@ const WAVES = [
 // The end of the mission, drawn as a blueprint like the other views: the capsule drifts
 // down under its three main parachutes and splashes into the ocean, then "Mission
 // success!", a short `summary` ([{ label, value, info }], `info` an optional glossary key
-// for a "?") and a link back home.
-const Splashdown = ({ summary }) => (
+// for a "?") and a link back home. `from` names where the crew is home from ("Mars" or
+// "the Moon").
+const Splashdown = ({ summary, from = "Mars" }) => (
   <section className="splashdown">
     <svg className="splashdown__scene" viewBox="0 0 400 260" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
       <defs>
@@ -62,7 +63,7 @@ const Splashdown = ({ summary }) => (
     <div className="splashdown__panel" role="status">
       <h1 className="splashdown__title">Mission success!</h1>
       <p className="splashdown__text">
-        Splashdown. The crew is home from Mars, and the recovery ship is on its way.
+        Splashdown. The crew is home from {from}, and the recovery ship is on its way.
       </p>
       {summary.length > 0 && (
         <dl className="splashdown__summary">

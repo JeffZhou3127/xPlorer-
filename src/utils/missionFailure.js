@@ -64,7 +64,7 @@ const explainReentryFailure = (failure) => {
     return {
       reason: `The capsule skipped off the atmosphere and drifted back into space, ${formatMissionTime(failure.time)} after the entry interface.`,
       detail: `Entering ${how}, it dipped only to ${km(failure.lowest)}: too shallow for the thin upper air to slow it below orbital speed, so it climbed back out like a stone skipping on water.`,
-      tip: "Enter more steeply (about 6–7° below the horizon on the way back from Mars). A little angle of attack helps too: the guidance points the lift down when the capsule starts to climb, holding it in the atmosphere.",
+      tip: `Enter more steeply (${failure.from === "Moon" ? "about 8–9.5° below the horizon on the way back from the Moon" : "about 6–7° below the horizon on the way back from Mars"}). A little angle of attack helps too: the guidance points the lift down when the capsule starts to climb, holding it in the atmosphere.`,
     };
   }
   if (failure.cause === "overload") {

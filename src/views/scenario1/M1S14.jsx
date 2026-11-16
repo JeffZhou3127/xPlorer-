@@ -11,16 +11,21 @@ import MissionClock from "../../components/MissionClock/MissionClock.jsx";
 import RadioBlackout from "../../components/RadioBlackout/RadioBlackout.jsx";
 import Splashdown from "../../components/Splashdown/Splashdown.jsx";
 import { format, formatMissionTime } from "../../utils/format.js";
+import { DEFAULT_PERIGEE } from "../../utils/moonReturn.js";
 import {
   AOA_RANGE,
   DEFAULT_AOA,
   DEFAULT_ENTRY_ANGLE,
   DEFAULT_V_INF,
+  EARTH_ENTRY,
   ENTRY_ANGLE_RANGE,
   G_LIMIT,
+  SCALED_EARTH_ENTRY,
   SHIELD_LIMIT_C,
   SHIELD_SECTIONS,
+  entryFromPerigee,
   entryReadouts,
+  entrySpeed,
   entryState,
   finishEntry,
   inBlackout,
@@ -41,9 +46,42 @@ const SEPARATION_MS = 4800;
 // capsule sees at the blackout, so they build up while the player watches).
 const FULL_GLOW_FLUX = 4e5;
 
+const clampAngle = (angle) =>
+  Math.min(ENTRY_ANGLE_RANGE.max, Math.max(ENTRY_ANGLE_RANGE.min, Math.round(angle * 10) / 10));
+
+// What differs between coming home from Mars (M1S14) and from the Moon (M2S10, to mission
+// 2's half-size Earth). `entry(state)` gives the speed at the entry interface and the
+// starting entry angle from the route state.
+const TRIPS = {
+  mars: {
+    from: "Mars",
+    planet: EARTH_ENTRY,
+    retryPath: "/m1-s14",
+    entry: (state) => ({ speed: entrySpeed(state?.arrival?.vInf ?? DEFAULT_V_INF), angle: DEFAULT_ENTRY_ANGLE }),
+    separating: "The service module is being jettisoned.",
+    corridor: "Capsules coming home from Mars aim for about 6–7° below the horizon",
+  },
+  moon: {
+    from: "Moon",
+    planet: SCALED_EARTH_ENTRY,
+    retryPath: "/m2-s10",
+    // The perigee aimed for in M2S9 sets the starting angle; a last course correction
+    // can still trim it.
+    entry: (state) => {
+      const { perigeeAltitude = DEFAULT_PERIGEE.altitude, speed = DEFAULT_PERIGEE.speed } = state?.arrival ?? {};
+      const entry = entryFromPerigee(perigeeAltitude, speed, SCALED_EARTH_ENTRY);
+      return { speed: entry.speed, angle: clampAngle(entry.angle) };
+    },
+    separating: "The landing stage and service module are being jettisoned.",
+    corridor: "Capsules coming home from the Moon aim for about 8–9.5° below the horizon (the angle starts where your perigee put it)",
+  },
+};
+
 const windwardFactor = (aoa) => SHIELD_SECTIONS.find((s) => s.key === "windward").factor(aoa);
 
-// Mission 1, step 14: Earth reentry, from M1S13's Continue once Earth is reached (route
+// Mission 1, step 14 (`trip="mars"`) and mission 2, step 10 (`trip="moon"`, from M2S9's
+// Continue with `arrival: { perigeeAltitude, speed }`, which set the entry speed and the
+// starting entry angle; see TRIPS). Mission 1: Earth reentry, from M1S13's Continue once Earth is reached (route
 // state `arrival.vInf`, the speed the transfer arrives with). It opens with the service
 // module being jettisoned. Left: the reentry form (entry angle, locked at Start; angle of
 // attack, adjustable until the radio blackout) and the goal card. Right: the view of the
@@ -54,15 +92,16 @@ const windwardFactor = (aoa) => SHIELD_SECTIONS.find((s) => s.key === "windward"
 // the entry in BLACKOUT_SECONDS. Then: burned up or
 // skipped back out into space → the mission failure view (retry from here); splashdown →
 // the "Mission success!" screen, with a link home.
-const M1S14 = () => {
+const M1S14 = ({ trip = "mars" }) => {
   const navigate = useNavigate();
   const redo = useRedo();
   const { state } = useLocation();
-  const vInf = state?.arrival?.vInf ?? DEFAULT_V_INF;
+  const { from, planet, retryPath, separating, corridor } = TRIPS[trip];
+  const [initial] = useState(() => TRIPS[trip].entry(state));
 
   // "separation" | "ready" | "entry" | "blackout" | "splashdown"
   const [phase, setPhase] = useState("separation");
-  const [entryAngle, setEntryAngle] = useState(DEFAULT_ENTRY_ANGLE);
+  const [entryAngle, setEntryAngle] = useState(initial.angle);
   const [aoa, setAoa] = useState(DEFAULT_AOA);
   const [sim, setSim] = useState(null); // the entry once started
   const [warp, setWarp] = useState(1); // the player's warp before the blackout
@@ -84,7 +123,10 @@ const M1S14 = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const preview = useMemo(() => entryState(vInf, entryAngle), [vInf, entryAngle]);
+  const preview = useMemo(
+    () => entryState(initial.speed, entryAngle, planet),
+    [initial.speed, entryAngle, planet],
+  );
   const shown = sim ?? preview;
   const readouts = entryReadouts(shown);
 
@@ -134,18 +176,18 @@ const M1S14 = () => {
         setPhase("splashdown");
       } else {
         navigate("/mission-failure", {
-          state: { failure: reentryFailure(blackout.final, entryAngle), retryState: state },
+          state: { failure: reentryFailure(blackout.final, entryAngle, from), retryState: state, retryPath },
         });
       }
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [phase, blackout, entryAngle, navigate, state]);
+  }, [phase, blackout, entryAngle, navigate, state, from, retryPath]);
 
   const start = () => {
-    const initial = entryState(vInf, entryAngle);
-    startRef.current = initial;
-    setSim(initial);
+    const begin = entryState(initial.speed, entryAngle, planet);
+    startRef.current = begin;
+    setSim(begin);
     setPhase("entry");
   };
 
@@ -153,6 +195,7 @@ const M1S14 = () => {
     const final = entryReadouts(blackout.final);
     return (
       <Splashdown
+        from={from === "Moon" ? "the Moon" : from}
         summary={[
           { label: "Entry angle", value: `${format(entryAngle, 1)}°`, info: "entryAngle" },
           { label: "Angle of attack", value: `${format(blackout.final.aoa, 1)}°`, info: "angleOfAttack" },
@@ -178,7 +221,7 @@ const M1S14 = () => {
     clockWarp = Math.round(blackout.warp);
   }
 
-  let note = "The service module is being jettisoned. Set the entry angle and angle of attack meanwhile.";
+  let note = `${separating} Set the entry angle and angle of attack meanwhile.`;
   if (phase === "ready") note = "Capsule free. Set the entry angle and angle of attack, then Start.";
   if (phase === "blackout") note = "Radio blackout. The angle of attack is locked.";
   if (phase === "entry") {
@@ -211,7 +254,7 @@ const M1S14 = () => {
                 steps={1}
                 goal="Splash down in the ocean"
                 meters={[]}
-                note={`Thread the entry corridor: steep enough not to skip off the atmosphere, shallow enough that the heat shield stays under ${format(SHIELD_LIMIT_C)} °C and the deceleration under ${G_LIMIT} g. Capsules coming home from Mars aim for about 6–7° below the horizon; lift widens the corridor, but too much angle of attack overheats the windward shoulder.`}
+                note={`Thread the entry corridor: steep enough not to skip off the atmosphere, shallow enough that the heat shield stays under ${format(SHIELD_LIMIT_C)} °C and the deceleration under ${G_LIMIT} g. ${corridor}; lift widens the corridor, but too much angle of attack overheats the windward shoulder.`}
               />
             </div>
           </FlightControls>

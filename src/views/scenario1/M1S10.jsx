@@ -10,26 +10,44 @@ import {
   ORBIT_PERIAPSIS_KM,
   REQUIRED_EXPERIMENTS,
 } from "../../utils/scienceExperiments.js";
+import { LUNAR_EXPERIMENTS } from "../../utils/lunarExperiments.js";
 import { format } from "../../utils/format.js";
 
 // How long an instrument "collects data" before its result appears.
 const RUN_MS = 1200;
 
-const INTRO = `You are in a ${format(ORBIT_PERIAPSIS_KM)} × ${format(ORBIT_APOAPSIS_KM)} km polar orbit around Mars. Tune each instrument's settings and run it; an experiment is complete once its data quality reaches ${COMPLETE_QUALITY}%.`;
+const TUNE = `Tune each instrument's settings and run it; an experiment is complete once its data quality reaches ${COMPLETE_QUALITY}%.`;
+
+// What differs between the science at Mars (M1S10) and on the Moon (M2S7).
+const SITES = {
+  mars: {
+    experiments: EXPERIMENTS,
+    intro: `You are in a ${format(ORBIT_PERIAPSIS_KM)} × ${format(ORBIT_APOAPSIS_KM)} km polar orbit around Mars. ${TUNE}`,
+    next: "/m1-s11",
+  },
+  moon: {
+    experiments: LUNAR_EXPERIMENTS,
+    intro: `You have landed on a lava plain on the Moon, and the crew is out on the surface with the instruments. ${TUNE}`,
+    next: "/m2-s8",
+    continueLabel: "Leave Lunar Surface →",
+  },
+};
 
 const sameValues = (a, b) => Object.keys(a).every((key) => a[key] === b[key]);
 
-// Mission 1, step 10: science in Mars orbit, reached from M1S9's Continue once captured.
-// Nine experiment cards (models in scienceExperiments.js); each run's result is kept with
+// Mission 1, step 10: science in Mars orbit, reached from M1S9's Continue once captured; also
+// mission 2, step 7 (`site="moon"`): science on the lunar surface after the landing (M2S6).
+// Nine experiment cards (models in scienceExperiments.js / lunarExperiments.js); each run's result is kept with
 // the settings that produced it, so a card can flag it as stale after a change. An
 // experiment stays complete once any run reaches COMPLETE_QUALITY, and Continue unlocks
-// at REQUIRED_EXPERIMENTS; it leads to the second docking (/m1-s11), with the route state
-// from M1S9 (the stages left and the RCS used) passed along.
-const M1S10 = () => {
+// at REQUIRED_EXPERIMENTS; it leads to the second docking (/m1-s11) or, on the Moon, to
+// /m2-s8, passing the route state along (the stages left, the RCS used, the lander's fuel).
+const M1S10 = ({ site = "mars" }) => {
+  const { experiments, intro, next, continueLabel } = SITES[site];
   const navigate = useNavigate();
   const { state } = useLocation();
   const [values, setValues] = useState(() =>
-    Object.fromEntries(EXPERIMENTS.map(({ id, defaults }) => [id, defaults])),
+    Object.fromEntries(experiments.map(({ id, defaults }) => [id, defaults])),
   );
   const [runs, setRuns] = useState({}); // id → { result, values }
   const [running, setRunning] = useState({}); // id → true while collecting
@@ -68,12 +86,12 @@ const M1S10 = () => {
   return (
     <>
       <ScienceBoard
-        intro={INTRO}
+        intro={intro}
         completed={completed.size}
-        total={EXPERIMENTS.length}
+        total={experiments.length}
         required={REQUIRED_EXPERIMENTS}
       >
-        {EXPERIMENTS.map((experiment, i) => {
+        {experiments.map((experiment, i) => {
           const last = runs[experiment.id];
           return (
             <ExperimentCard
@@ -92,7 +110,11 @@ const M1S10 = () => {
           );
         })}
       </ScienceBoard>
-      <StepNav onContinue={() => navigate("/m1-s11", { state })} blockedReason={blockedReason} />
+      <StepNav
+        onContinue={() => navigate(next, { state })}
+        blockedReason={blockedReason}
+        continueLabel={continueLabel}
+      />
     </>
   );
 };

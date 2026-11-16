@@ -16,7 +16,8 @@ import { isReentryFailure } from "../../utils/reentry.js";
 // mission 2's Moon transfer passes its lander designer as `redesignPath`).
 // Orbit insertion (Mars, or mission 2's Moon): Retry flies the arrival again, Redesign goes
 // back to the rocket designer (M1S9 passes both as `retryPath` and `redesignPath`).
-// Reentry (step 14: burned up or skipped back into space): Retry flies it again, or home.
+// Reentry (step 14, or mission 2's step 10: burned up or skipped back into space): Retry
+// flies it again (`retryPath`), or home.
 const MissionFailure = () => {
   const navigate = useNavigate();
   const {
@@ -39,7 +40,7 @@ const MissionFailure = () => {
   } else if (isReentryFailure(failure)) {
     // Nothing designed earlier changes the reentry, so the other way out is home.
     actions = {
-      onRetry: () => navigate("/m1-s14", { state: retryState }),
+      onRetry: () => navigate(retryPath, { state: retryState }),
       onRedesign: () => navigate("/"),
       retryLabel: "Retry reentry",
       redesignLabel: "Home",

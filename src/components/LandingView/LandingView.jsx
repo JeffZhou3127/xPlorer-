@@ -6,9 +6,9 @@ import { RELEASE_AT } from "../../utils/lunarLanding.js";
 import "../RocketDiagram/RocketDiagram.css";
 import "./LandingView.css";
 
-// The lander (SpacecraftBody) over the Moon, for mission 2's separation and landing (M2S6).
-// The lander stays put with its footpads at the origin; the surface rises to meet it as it
-// comes down (on a log scale, so the last few hundred metres still show), flattening out
+// The lander (SpacecraftBody) over the Moon, for mission 2's separation and landing (M2S6)
+// and its liftoff (M2S8). The lander stays put with its footpads at the origin; the surface
+// rises to meet it as it comes down (or falls away as it climbs) (on a log scale, so the last few hundred metres still show), flattening out
 // from the curved limb seen from orbit, and its craters slide past as fast as the ground seems to
 // move seen from the lander (`sweep`), slowing to a stop by touchdown.
 const VIEW = { left: -420, top: -560, width: 840, height: 920 };
@@ -23,9 +23,10 @@ const smoothstep = (x) => {
 };
 
 // How far below the footpads the surface is drawn at `altitude` (m), and its drawn radius.
+// Higher orbits (the liftoff's 100 km) are drawn as the 50 km one, so the limb stays in view.
 const groundDrop = (altitude) =>
-  (GROUND_AT_ORBIT * Math.log10(1 + altitude / 20)) / Math.log10(1 + ORBIT_ALTITUDE / 20);
-const groundRadius = (altitude) => LIMB_RADIUS * (ORBIT_ALTITUDE / Math.max(altitude, 50)) ** 0.9;
+  (GROUND_AT_ORBIT * Math.log10(1 + Math.min(altitude, ORBIT_ALTITUDE) / 20)) / Math.log10(1 + ORBIT_ALTITUDE / 20);
+const groundRadius = (altitude) => LIMB_RADIUS * (ORBIT_ALTITUDE / Math.min(ORBIT_ALTITUDE, Math.max(altitude, 50))) ** 0.9;
 
 // Fixed scenery: stars, and craters repeating every CRATER_PERIOD units downrange
 // (x, radius, depth below the horizon line).
@@ -89,7 +90,7 @@ const Dust = ({ y, strength }) =>
   );
 
 // `design`: the lander design. `stages`: the spent stack to drop (null once gone).
-// `state`: from `landingPlan(...).stateAt` (phase, elapsed, altitude, sweep, pitch,
+// `state`: from `landingPlan(...).stateAt` or `liftoffPlan(...).stateAt` (phase, elapsed, altitude, sweep, pitch,
 // throttle).
 const LandingView = ({ design, stages, state, aside }) => {
   const { phase, elapsed, altitude, sweep, pitch, throttle } = state;
