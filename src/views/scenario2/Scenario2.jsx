@@ -1,15 +1,10 @@
 import MissionObjective from "../../components/MissionObjective/MissionObjective.jsx";
+import { missionById } from "../../utils/missions.js";
+
+const MISSION = missionById("moon");
 
 const Scenario2 = () => {
-  return (
-    <>
-      <MissionObjective
-        name="Moon Mission"
-        description="Your objective is to land a person on the Moon and bring them safely back to Earth. You will use orbital mechanics to reach the Moon, then return home through the atmosphere behind a heat shield."
-        startPath="/m2-s1"
-      />
-    </>
-  );
+  return <MissionObjective name={MISSION.name} plan={MISSION.plan} startPath={MISSION.start} />;
 };
 
 export default Scenario2;

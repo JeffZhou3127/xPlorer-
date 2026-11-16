@@ -1,13 +1,7 @@
-import { Link } from "react-router";
+import MissionSelect from "../components/MissionSelect/MissionSelect.jsx";
+import { MISSIONS } from "../utils/missions.js";
 
-const Home = () => {
-  return (
-    <nav>
-      <Link to="/scenario1">Scenario 1</Link>
-      <Link to="/scenario2">Scenario 2</Link>
-      <Link to="/scenario3">Scenario 3</Link>
-    </nav>
-  );
-};
+// The home page: a card for each mission, easiest on the left, hardest on the right.
+const Home = () => <MissionSelect missions={MISSIONS} />;
 
 export default Home;

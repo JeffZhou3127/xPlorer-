@@ -1,0 +1,41 @@
+.mission-select {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3rem;
+  padding: 3rem 2rem;
+}
+
+.mission-select__header {
+  text-align: center;
+}
+
+.mission-select__title {
+  margin: 0;
+  font-family: "Orbitron", "Rajdhani", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #00e5ff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.mission-select__subtitle {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8b949e;
+}
+
+.mission-select__missions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(16rem, 1fr));
+  overflow-x: auto;
+  gap: 1.5rem;
+  width: min(72rem, 100%);
+  margin: 0 auto;
+}

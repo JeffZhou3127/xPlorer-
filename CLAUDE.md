@@ -24,13 +24,15 @@ Steps 6–8 and 11–13 share views: `M1S6A11` (docking), `M1S7A12` (refueling),
 
 - **Vite 8 + React 19**, plain JS/JSX. Arrow-function components, double quotes, semicolons.
 - **Lint**: oxlint `react` + `oxc`; `react/rules-of-hooks` error, `react/only-export-components` warning (component files export only components).
-- **Routing**: `react-router` v8 (not `react-router-dom`), declarative. `src/App.jsx` holds only `<Routes>`. Views in `src/views/` (scenario views in `src/views/scenario1/`, `M1S2.jsx` → `/m1-s2`). New view: create it, add a `<Route>` in `App.jsx` and a `<Link>` in `Home.jsx`.
+- **Routing**: `react-router` v8 (not `react-router-dom`), declarative. `src/App.jsx` holds only `<Routes>`. Views in `src/views/` (scenario views in `src/views/scenario1/`, `M1S2.jsx` → `/m1-s2`). New view: create it and add a `<Route>` in `App.jsx`.
 - **Layout**: views assemble components; each component has its own PascalCase folder in `src/components/` with its CSS. Non-UI logic (physics, wording) in `src/utils/` (no React); hooks in `src/hooks/`.
 - **Entry**: `src/index.jsx` mounts `<App />` in `StrictMode`, Redux `Provider`, `BrowserRouter`. New top-level providers go there.
 - **State**: Redux Toolkit for designs only (`spacecraftSlice.js`: `updateDesign(patch)`; `rocketSlice.js`: `{ stages, srbs, nextStageId }` with add/remove/update actions and design rules `FUEL_RANGES`, `ENGINE_RANGES`, `rangesFor`, SRB limits). Lost on reload. Views select/dispatch; components are presentational. Flight/docking/etc. state is local to the view.
 - **Route state** carries leftover stages `{ flight: { stageIndex, stageFuel } }` from M1S4 all the way to M1S13, plus cumulative `rcsUsed` (dockings and the M1S8 cruise add to it; depots refuel stages, not RCS) and `arrival: { vInf }` into M1S9/M1S14. Without it, views fall back to "only the top stage left", no RCS used, `DEFAULT_V_INF`.
 
 ## Shared pieces
+
+- **Missions**: `src/utils/missions.js` `MISSIONS` (easiest first: CubeSat, Moon, Mars; never called "scenarios" in the UI) holds each mission's name, objective `path`, first step `start`, `difficulty` (1–3, the card colours its `level` green/yellow/red: Easy, Intermediate, Extreme), card `description` and flight `plan`. `Home` renders `MissionSelect` (title + one row of `MissionCard`s, never stacked); each `ScenarioN` renders `MissionObjective` with the plan as a numbered list (`missionById`).
 
 - `Meter` (red with `alert`), `Stat`, `Info` from `RocketStats.jsx`; `RangeField`/`SelectField` from `StageCard.jsx`.
 - `src/utils/format.js`: `format`, `money`, `overBudgetReason`, `formatMissionTime`.
