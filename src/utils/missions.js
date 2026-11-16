@@ -1,15 +1,19 @@
 import cubesatImage from "../assets/Cubesat.png";
+import cubesatVideo from "../assets/Cubesat_Video.mp4";
 import marsImage from "../assets/Mars.png";
+import marsVideo from "../assets/Mars_Video.mp4";
 import moonImage from "../assets/Moon.png";
+import moonVideo from "../assets/Moon_Video.mp4";
 
 // The three missions, easiest first: what the home page cards and each mission's
 // objective page show. `path` is the objective page, `start` its first step, `difficulty`
 // 1–3 with its `level` name, `image` the home page backdrop while its card is hovered,
-// `plan` the flight plan in order.
+// `video` the objective page's looping backdrop, `plan` the flight plan in order.
 export const MISSIONS = [
   {
     id: "cubesat",
     image: cubesatImage,
+    video: cubesatVideo,
     name: "CubeSat Mission",
     path: "/scenario3",
     start: "/m3-s1",
@@ -27,6 +31,7 @@ export const MISSIONS = [
   {
     id: "moon",
     image: moonImage,
+    video: moonVideo,
     name: "Moon Mission",
     path: "/scenario2",
     start: "/m2-s1",
@@ -50,6 +55,7 @@ export const MISSIONS = [
   {
     id: "mars",
     image: marsImage,
+    video: marsVideo,
     name: "Mars Mission",
     path: "/scenario1",
     start: "/m1-s1",
