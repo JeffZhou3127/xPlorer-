@@ -142,7 +142,7 @@
   pointer-events: none;
 }
 
-/* Mars's polar axis (MARS_COLORS.axis in marsScene.js). */
+/* The polar axis of Mars or the Moon (MARS_COLORS.axis in marsScene.js, MOON_COLORS.axis in lunarScene.js). */
 .trajectory-view__key--axis {
   --tv-key: #d99973;
 }

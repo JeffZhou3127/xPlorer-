@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router";
 import FailureReport from "../../components/FailureReport/FailureReport.jsx";
 import { isCruiseFailure } from "../../utils/cruiseSystems.js";
-import { explainFailure, failureSummary, isMarsFailure } from "../../utils/missionFailure.js";
+import { explainFailure, failureSummary, isCaptureFailure } from "../../utils/missionFailure.js";
 import { ORBIT_WINDOW_KM } from "../../utils/rocketPhysics.js";
 import { isReentryFailure } from "../../utils/reentry.js";
 
@@ -14,7 +14,8 @@ import { isReentryFailure } from "../../utils/reentry.js";
 // Launch: Retry starts a fresh launch, Redesign goes back to the rocket designer (step 2).
 // Cruise: Retry goes back to that ejection burn, Redesign to the spacecraft designer (step 1;
 // mission 2's Moon transfer passes its lander designer as `redesignPath`).
-// Mars: Retry flies the arrival again, Redesign goes back to the rocket designer.
+// Orbit insertion (Mars, or mission 2's Moon): Retry flies the arrival again, Redesign goes
+// back to the rocket designer (M1S9 passes both as `retryPath` and `redesignPath`).
 // Reentry (step 14: burned up or skipped back into space): Retry flies it again, or home.
 const MissionFailure = () => {
   const navigate = useNavigate();
@@ -43,10 +44,10 @@ const MissionFailure = () => {
       retryLabel: "Retry reentry",
       redesignLabel: "Home",
     };
-  } else if (isMarsFailure(failure)) {
+  } else if (isCaptureFailure(failure)) {
     actions = {
-      onRetry: () => navigate("/m1-s9", { state: retryState }),
-      onRedesign: () => navigate("/m1-s2"),
+      onRetry: () => navigate(retryPath, { state: retryState }),
+      onRedesign: () => navigate(redesignPath),
       retryLabel: "Retry orbit insertion",
     };
   }

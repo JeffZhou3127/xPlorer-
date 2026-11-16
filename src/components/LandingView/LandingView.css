@@ -1,0 +1,64 @@
+/* Shares the blueprint line styles (.rd-*) from RocketDiagram.css. */
+/* Fills the rest of the right pane, like .flight-view. */
+.landing-view {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 20rem;
+}
+
+.landing-view__svg {
+  --rd-line: #fff;
+  --rd-bg: #000;
+
+  display: block;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.landing-view__svg * {
+  vector-effect: non-scaling-stroke;
+}
+
+.lv-sky {
+  fill: #000;
+}
+
+.lv-star {
+  fill: #c9d1d9;
+  opacity: 0.55;
+}
+
+.lv-ground {
+  fill: #1c1d21;
+  stroke: #8b949e;
+  stroke-width: 1.5;
+}
+
+.lv-crater {
+  fill: #141518;
+  stroke: #8b949e;
+  stroke-width: 0.75;
+  opacity: 0.8;
+}
+
+.lv-dust ellipse {
+  fill: #b9b4a8;
+}
+
+.lv-flash {
+  fill: #fff2d6;
+}
+
+.lv-flash--impact {
+  fill: #ff8c2e;
+}
+
+/* The lander after a crash: dimmed and drawn in red. */
+.lv-wreck {
+  --rd-line: #ff6b6b;
+
+  opacity: 0.75;
+}

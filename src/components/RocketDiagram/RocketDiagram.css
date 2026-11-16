@@ -96,6 +96,8 @@
 .rd-flame--hydrolox .rd-flame__core { fill: #ffffff; opacity: 0.7; }
 .rd-flame--solid .rd-flame__plume { fill: #ff7a1f; }
 .rd-flame--solid .rd-flame__core { fill: #fff6d8; }
+.rd-flame--hypergolic .rd-flame__plume { fill: #ffb36b; opacity: 0.45; }
+.rd-flame--hypergolic .rd-flame__core { fill: #fff2d6; opacity: 0.85; }
 
 /* Frozen while the flight is paused. */
 .flight-view--paused .rd-flame,

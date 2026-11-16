@@ -18,12 +18,13 @@ export const DEFAULT_V_INF = 2650;
 export const TARGET_PERIGEE_KM = { min: 900, max: 1100 };
 export const TARGET_APOGEE_KM = { min: 16000, max: 18000 };
 
-// Position and velocity { x, y, vx, vy } (m, m/s) on the arrival hyperbola for `vInf`
-// (m/s), START_ALTITUDE_KM up and still falling toward the periapsis.
-export const arrivalState = (vInf) => {
-  const { gm, radius } = MARS;
-  const rp = radius + PERIAPSIS_ALTITUDE_KM * 1000;
-  const r = radius + START_ALTITUDE_KM * 1000;
+// Position and velocity { x, y, vx, vy } (m, m/s) on the hyperbola past `body` ({ gm,
+// radius }) for `vInf` (m/s) with its periapsis `periapsisKm` up, `startKm` up and still
+// falling toward the periapsis. Periapsis on +y, moving toward +x there (clockwise).
+export const approachState = (body, vInf, periapsisKm, startKm) => {
+  const { gm, radius } = body;
+  const rp = radius + periapsisKm * 1000;
+  const r = radius + startKm * 1000;
   const e = 1 + (rp * vInf * vInf) / gm;
   const p = rp * (1 + e); // semi-latus rectum
   // True anomaly here (negative: before periapsis).
@@ -34,3 +35,5 @@ export const arrivalState = (vInf) => {
   const vel = { radial: -speed * Math.sin(nu), side: speed * (e + Math.cos(nu)) };
   return { x: along.side, y: along.radial, vx: vel.side, vy: vel.radial };
 };
+
+export const arrivalState = (vInf) => approachState(MARS, vInf, PERIAPSIS_ALTITUDE_KM, START_ALTITUDE_KM);

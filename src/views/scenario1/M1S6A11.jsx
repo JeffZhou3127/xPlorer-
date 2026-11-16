@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
+import useRedo from "../../hooks/useRedo.js";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
 import FlightControls from "../../components/FlightControls/FlightControls.jsx";
 import RcsControls from "../../components/RcsControls/RcsControls.jsx";
@@ -129,6 +130,7 @@ const guidance = (docking) => {
 const M1S6A11 = ({ leg = "outbound" }) => {
   const { goal, docked, next: nextPath } = LEGS[leg];
   const navigate = useNavigate();
+  const redo = useRedo();
   // The flight's leftover stages, passed on to refueling, and the RCS Δv already spent.
   const { state } = useLocation();
   const design = useSelector(selectSpacecraftDesign);
@@ -211,7 +213,7 @@ const M1S6A11 = ({ leg = "outbound" }) => {
       <SplitPane
         left={
           <>
-            <FlightControls title="Docking controls" note={note}>
+            <FlightControls onRedo={redo} title="Docking controls" note={note}>
               <RcsControls
                 translationStep={translationStep}
                 rotationStep={rotationStep}

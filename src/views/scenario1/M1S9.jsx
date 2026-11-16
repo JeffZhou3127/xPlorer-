@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
+import useRedo from "../../hooks/useRedo.js";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
 import FlightControls from "../../components/FlightControls/FlightControls.jsx";
 import ThrottleControl from "../../components/ThrottleControl/ThrottleControl.jsx";
@@ -8,6 +9,7 @@ import PitchControl from "../../components/PitchControl/PitchControl.jsx";
 import FlightView from "../../components/FlightView/FlightView.jsx";
 import TrajectoryView from "../../components/TrajectoryView/TrajectoryView.jsx";
 import { MARS_SCENE } from "../../components/TrajectoryView/marsScene.js";
+import { LUNAR_SCENE } from "../../components/TrajectoryView/lunarScene.js";
 import ViewSwitch from "../../components/ViewSwitch/ViewSwitch.jsx";
 import FuelGauges from "../../components/FuelGauges/FuelGauges.jsx";
 import FlightStats from "../../components/FlightStats/FlightStats.jsx";
@@ -23,16 +25,12 @@ import {
   retrogradePitch,
   timeToPerigee,
 } from "../../utils/flightSim.js";
-import {
-  DEFAULT_V_INF,
-  PERIAPSIS_ALTITUDE_KM,
-  TARGET_APOGEE_KM,
-  TARGET_PERIGEE_KM,
-  arrivalState,
-} from "../../utils/marsArrival.js";
+import * as marsArrival from "../../utils/marsArrival.js";
+import * as moonArrival from "../../utils/moonArrival.js";
 import { format } from "../../utils/format.js";
 import { selectRocket } from "../../store/rocketSlice.js";
 import { selectSpacecraftMass } from "../../store/spacecraftSlice.js";
+import { selectLanderMass } from "../../store/landerSlice.js";
 
 // Same limits as the launch panel (M1S4).
 const MAX_PITCH_RATE = 5;
@@ -42,9 +40,38 @@ const MAX_TIME_WARP = 5;
 const COAST_LEAD = 60; // s
 const COAST_SECONDS = 10;
 
+// What differs between arriving at Mars (mission 1, step 9) and at the Moon (mission 2,
+// step 5): the body and its scene, the arrival model (approach state, default v∞, goal
+// windows), the payload, the wording, and where Continue and a failure lead.
+const ARRIVALS = {
+  mars: {
+    body: MARS,
+    scene: MARS_SCENE,
+    model: marsArrival,
+    selectPayloadMass: selectSpacecraftMass,
+    title: "Mars orbit insertion",
+    name: "Mars",
+    next: "/m1-s10",
+    retryPath: "/m1-s9",
+    redesignPath: "/m1-s2",
+  },
+  moon: {
+    body: moonArrival.MOON,
+    scene: LUNAR_SCENE,
+    model: moonArrival,
+    selectPayloadMass: selectLanderMass,
+    title: "Lunar orbit insertion",
+    name: "the Moon",
+    next: "/m2-s6",
+    retryPath: "/m2-s5",
+    redesignPath: "/m2-s2",
+  },
+};
+
 const metres = ({ min, max }) => ({ min: min * 1000, max: max * 1000 });
 const windowText = ({ min, max }) => `${format(min)}–${format(max)} km`;
-const TARGET_TEXT = `${format(PERIAPSIS_ALTITUDE_KM)} × ${format((TARGET_APOGEE_KM.min + TARGET_APOGEE_KM.max) / 2)} km`;
+const targetText = ({ PERIAPSIS_ALTITUDE_KM, TARGET_APOGEE_KM }) =>
+  `${format(PERIAPSIS_ALTITUDE_KM)} × ${format((TARGET_APOGEE_KM.min + TARGET_APOGEE_KM.max) / 2)} km`;
 
 // "m:ss" for a duration in seconds.
 const duration = (seconds) => {
@@ -58,9 +85,10 @@ const VIEW_OPTIONS = [
 ];
 
 // The goal card's note: what to do next.
-const goalNote = (coasting, coastWarp, flight, { apogee, perigee }) => {
+const goalNote = (coasting, coastWarp, flight, { apogee, perigee }, { name, model }) => {
+  const { TARGET_APOGEE_KM, TARGET_PERIGEE_KM } = model;
   if (coasting) {
-    return `Falling toward Mars at ${coastWarp}x. The engines unlock ${COAST_LEAD} s before perigee (perigee in ${duration(timeToPerigee(flight))}).`;
+    return `Falling toward ${name} at ${coastWarp}x. The engines unlock ${COAST_LEAD} s before perigee (perigee in ${duration(timeToPerigee(flight))}).`;
   }
   const apogeeOk = inRange(apogee, metres(TARGET_APOGEE_KM));
   const perigeeOk = inRange(perigee, metres(TARGET_PERIGEE_KM));
@@ -77,25 +105,31 @@ const goalNote = (coasting, coastWarp, flight, { apogee, perigee }) => {
   return `The apogee is below ${format(TARGET_APOGEE_KM.min)} km: the burn went on too long. Burn briefly along the direction of travel to raise it.`;
 };
 
-// Mission 1, step 9: Mars orbit insertion, reached from M1S8A13's Continue once Mars is
-// reached. The spacecraft falls in on a hyperbola (v∞ from the transfer, route state
-// `arrival.vInf`) whose closest point is PERIAPSIS_ALTITUDE_KM over Mars's north pole, and
-// must brake into a 1,000 × 17,000 km orbit. The same flight panel as the launch (M1S4):
-// the approach is coasted at high warp, pointed against the direction of travel, until
-// COAST_LEAD s before perigee; then the throttle unlocks. The goal is met by shutting the
-// engines down with both apsides in their windows. Crashing into Mars, running out of
+// Orbit insertion: mission 1, step 9 at Mars (`arrival` "mars", from M1S8A13's Continue)
+// and mission 2, step 5 at the Moon (`arrival` "moon", from M2S4's); App.jsx passes a
+// matching `key`. The spacecraft falls in on a hyperbola (v∞ from the transfer, route
+// state `arrival.vInf`) whose closest point is the model's PERIAPSIS_ALTITUDE_KM up: over
+// Mars's north pole, or over the Moon's equator (passing clockwise seen from above its
+// north pole). It must brake into the goal orbit. The same flight panel as the launch
+// (M1S4): the approach is coasted at high warp, pointed against the direction of travel,
+// until COAST_LEAD s before perigee; then the throttle unlocks. The goal is met by
+// shutting the engines down with both apsides in their windows. Crashing, running out of
 // fuel, or climbing away on an escape path past the apogee window ends at the mission
 // failure view.
-const M1S9 = () => {
+const M1S9 = ({ arrival = "mars" }) => {
+  const config = ARRIVALS[arrival];
+  const { body, scene, model, name } = config;
+  const { TARGET_APOGEE_KM, TARGET_PERIGEE_KM } = model;
   const navigate = useNavigate();
+  const redo = useRedo();
   const { state } = useLocation();
   const { stages } = useSelector(selectRocket);
-  const payloadMass = useSelector(selectSpacecraftMass);
+  const payloadMass = useSelector(config.selectPayloadMass);
 
-  // Stages and fuel left after the ejection burn (from M1S8A13); without them, the top stage, full.
+  // Stages and fuel left after the transfer burn; without them, the top stage, full.
   const startStage = state?.flight?.stageIndex ?? stages.length - 1;
   const startFuel = state?.flight?.stageFuel ?? stages.map(() => 1);
-  const vInf = state?.arrival?.vInf ?? DEFAULT_V_INF;
+  const vInf = state?.arrival?.vInf ?? model.DEFAULT_V_INF;
 
   const [pitchRate, setPitchRate] = useState(0);
   const [throttle, setThrottle] = useState(100); // percent, for when the engines light
@@ -105,9 +139,9 @@ const M1S9 = () => {
   const effectiveThrottle = enginesOn ? throttle / 100 : 0;
 
   const [initial] = useState(() => {
-    const at = arrivalState(vInf);
+    const at = model.arrivalState(vInf);
     return flightInSpace({
-      body: MARS,
+      body,
       stages,
       stageIndex: startStage,
       stageFuel: startFuel,
@@ -145,9 +179,11 @@ const M1S9 = () => {
         failure: flight.failure,
         targets: { apogee: TARGET_APOGEE_KM, perigee: TARGET_PERIGEE_KM },
         retryState: state,
+        retryPath: config.retryPath,
+        redesignPath: config.redesignPath,
       },
     });
-  }, [flight.failure, navigate, state]);
+  }, [flight.failure, navigate, state, config, TARGET_APOGEE_KM, TARGET_PERIGEE_KM]);
 
   const readouts = flightReadouts(flight);
   const { stageIndex, separation: lastSeparation } = flight;
@@ -163,8 +199,8 @@ const M1S9 = () => {
   const reached = flight.orbitGoalTime !== null;
 
   let note = "Engines lit. Controls act immediately.";
-  if (coasting) note = `Approaching Mars at ${coastWarp}x, pointed against the direction of travel.`;
-  else if (reached) note = "In Mars orbit.";
+  if (coasting) note = `Approaching ${name} at ${coastWarp}x, pointed against the direction of travel.`;
+  else if (reached) note = `In orbit around ${name}.`;
   else if (!enginesOn) note = "Approach over. Restart the engines near perigee to brake into orbit.";
 
   return (
@@ -172,7 +208,7 @@ const M1S9 = () => {
       <SplitPane
         left={
           <>
-            <FlightControls title="Mars orbit insertion" note={note}>
+            <FlightControls onRedo={redo} title={config.title} note={note}>
               <ThrottleControl
                 throttle={throttle}
                 onChange={setThrottle}
@@ -181,7 +217,7 @@ const M1S9 = () => {
                 hasSrbs={false}
                 locked={
                   coasting
-                    ? { title: "Approaching Mars", detail: `Engines unlock ${COAST_LEAD} s before perigee` }
+                    ? { title: `Approaching ${name}`, detail: `Engines unlock ${COAST_LEAD} s before perigee` }
                     : null
                 }
               />
@@ -191,7 +227,7 @@ const M1S9 = () => {
                   step={1}
                   steps={1}
                   unit="km"
-                  goal={`Brake into a ${TARGET_TEXT} orbit`}
+                  goal={`Brake into a ${targetText(model)} orbit`}
                   meters={[
                     {
                       label: "Perigee",
@@ -206,15 +242,14 @@ const M1S9 = () => {
                       target: TARGET_APOGEE_KM,
                     },
                   ]}
-                  note={goalNote(coasting, coastWarp, flight, readouts)}
+                  note={goalNote(coasting, coastWarp, flight, readouts, config)}
                   reached={reached}
-                  reachedText={`Captured! Engines shut down in a Mars orbit with the perigee in ${windowText(TARGET_PERIGEE_KM)} and the apogee in ${windowText(TARGET_APOGEE_KM)}.`}
+                  reachedText={`Captured! Engines shut down in orbit around ${name} with the perigee in ${windowText(TARGET_PERIGEE_KM)} and the apogee in ${windowText(TARGET_APOGEE_KM)}.`}
                   action={{
                     label: "Continue",
-                    // The science step passes the stages left after the capture burn on to the
-                    // second docking and refueling.
+                    // The stages left after the capture burn go on to the next step.
                     onClick: () =>
-                      navigate("/m1-s10", {
+                      navigate(config.next, {
                         state: { ...state, flight: { stageIndex, stageFuel: flight.stageFuel } },
                       }),
                   }}
@@ -245,12 +280,7 @@ const M1S9 = () => {
                 aside={<FuelGauges gauges={gauges} />}
               />
             ) : (
-              <TrajectoryView
-                flight={flight}
-                scene={MARS_SCENE}
-                showTarget={!reached}
-                aside={<FuelGauges gauges={gauges} />}
-              />
+              <TrajectoryView flight={flight} scene={scene} showTarget={!reached} aside={<FuelGauges gauges={gauges} />} />
             )}
           </>
         }

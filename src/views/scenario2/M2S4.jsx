@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
+import useRedo from "../../hooks/useRedo.js";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
 import FlightControls from "../../components/FlightControls/FlightControls.jsx";
 import EjectionForm, { Field } from "../../components/EjectionForm/EjectionForm.jsx";
@@ -62,6 +63,7 @@ const thousandKm = (m) => m / 1e6;
 // the speed relative to the Moon at the closest approach.
 const M2S4 = () => {
   const navigate = useNavigate();
+  const redo = useRedo();
   const { state } = useLocation();
   const { stages } = useSelector(selectRocket);
   const payloadMass = useSelector(selectLanderMass);
@@ -174,7 +176,7 @@ const M2S4 = () => {
     <SplitPane
       left={
         <>
-          <FlightControls title="Trans-lunar injection" note={note}>
+          <FlightControls onRedo={redo} title="Trans-lunar injection" note={note}>
             <div className="flight-controls__column">
               <EjectionForm
                 angle={angle}

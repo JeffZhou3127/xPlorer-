@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router";
+import { Route, Routes, useLocation } from "react-router";
 import Home from "./views/Home.jsx";
 import Scenario1 from "./views/scenario1/Scenario1.jsx";
 import M1S1 from "./views/scenario1/M1S1.jsx";
@@ -18,10 +18,14 @@ import M2S1 from "./views/scenario2/M2S1.jsx";
 import M2S2 from "./views/scenario2/M2S2.jsx";
 import M2S3 from "./views/scenario2/M2S3.jsx";
 import M2S4 from "./views/scenario2/M2S4.jsx";
+import M2S6 from "./views/scenario2/M2S6.jsx";
 
 const App = () => {
+  // Keyed on the location so navigating to the same URL again (a flight step's Redo,
+  // useRedo) mounts the view afresh.
+  const location = useLocation();
   return (
-    <Routes>
+    <Routes key={location.key}>
       <Route path="/" element={<Home />} />
       <Route path="/scenario1" element={<Scenario1 />} />
       <Route path="/m1-s1" element={<M1S1 />} />
@@ -34,7 +38,7 @@ const App = () => {
       <Route path="/m1-s6" element={<M1S6A11 key="outbound" leg="outbound" />} />
       <Route path="/m1-s7" element={<M1S7A12 key="outbound" leg="outbound" />} />
       <Route path="/m1-s8" element={<M1S8A13 key="outbound" leg="outbound" />} />
-      <Route path="/m1-s9" element={<M1S9 />} />
+      <Route path="/m1-s9" element={<M1S9 key="mars" arrival="mars" />} />
       <Route path="/m1-s10" element={<M1S10 />} />
       <Route path="/m1-s11" element={<M1S6A11 key="return" leg="return" />} />
       <Route path="/m1-s12" element={<M1S7A12 key="return" leg="return" />} />
@@ -46,6 +50,8 @@ const App = () => {
       <Route path="/m2-s2" element={<M2S2 />} />
       <Route path="/m2-s3" element={<M2S3 />} />
       <Route path="/m2-s4" element={<M2S4 />} />
+      <Route path="/m2-s5" element={<M1S9 key="moon" arrival="moon" />} />
+      <Route path="/m2-s6" element={<M2S6 />} />
     </Routes>
   );
 };

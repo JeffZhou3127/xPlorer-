@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
+import useRedo from "../../hooks/useRedo.js";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
 import FlightControls from "../../components/FlightControls/FlightControls.jsx";
 import EjectionForm from "../../components/EjectionForm/EjectionForm.jsx";
@@ -73,6 +74,7 @@ const LEGS = {
 // spent so far); Continue adds what this cruise used.
 const M1S8A13 = ({ leg: legName = "outbound" }) => {
   const navigate = useNavigate();
+  const redo = useRedo();
   const { state } = useLocation();
   const { transfer: leg, title, path: routePath, next } = LEGS[legName];
   const origin = originName(leg);
@@ -193,7 +195,7 @@ const M1S8A13 = ({ leg: legName = "outbound" }) => {
     <SplitPane
       left={
         <>
-          <FlightControls title={title} note={note}>
+          <FlightControls onRedo={redo} title={title} note={note}>
             <div className="flight-controls__column">
               <EjectionForm
                 origin={origin}

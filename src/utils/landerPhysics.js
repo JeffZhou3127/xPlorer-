@@ -36,6 +36,14 @@ const LANDER_TANK_FRACTION = 0.1;
 const LANDER_TANK_COST_PER_T = 0.15;
 const LANDER_ISP = 320; // s, storable hypergolic engine
 
+// Δv budgeted for the landing (M2S6 flies it).
+export const LANDING_DELTA_V = 1300;
+
+// Tonnes of landing-stage fuel left after the lander (`totalMass` t with `landerFuel` t on
+// board) has spent `deltaV` m/s; never below 0.
+export const landerFuelLeft = (totalMass, landerFuel, deltaV) =>
+  Math.max(0, landerFuel - totalMass * (1 - Math.exp(-deltaV / (LANDER_ISP * G0))));
+
 // The lander's own burns, in flight order. On the scaled Moon (869 km radius) a 50 km orbit
 // is about 1,150 m/s; landing and liftoff each add gravity losses and time to hover, and
 // leaving that orbit for Earth (192,000 km away) takes about 590 m/s plus a margin.
@@ -43,8 +51,8 @@ const LANDER_BURNS = [
   {
     label: "Landing",
     info: "lunarLanding",
-    target: 1300,
-    note: "From a 50 km lunar orbit down to the surface, with time to hover.",
+    target: LANDING_DELTA_V,
+    note: "From the 50 × 150 km lunar orbit down to the surface, with time to hover.",
   },
   {
     label: "Liftoff",

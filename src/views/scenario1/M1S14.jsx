@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import useRedo from "../../hooks/useRedo.js";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
 import FlightControls from "../../components/FlightControls/FlightControls.jsx";
 import ReentryForm from "../../components/ReentryForm/ReentryForm.jsx";
@@ -55,6 +56,7 @@ const windwardFactor = (aoa) => SHIELD_SECTIONS.find((s) => s.key === "windward"
 // the "Mission success!" screen, with a link home.
 const M1S14 = () => {
   const navigate = useNavigate();
+  const redo = useRedo();
   const { state } = useLocation();
   const vInf = state?.arrival?.vInf ?? DEFAULT_V_INF;
 
@@ -187,7 +189,7 @@ const M1S14 = () => {
     <>
       <SplitPane
         left={
-          <FlightControls title="Reentry controls" note={note}>
+          <FlightControls onRedo={redo} title="Reentry controls" note={note}>
             <div className="flight-controls__column">
               <ReentryForm
                 entryAngle={entryAngle}

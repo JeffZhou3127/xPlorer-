@@ -42,3 +42,43 @@
   flex-direction: column;
   gap: 1rem;
 }
+
+.flight-controls__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Small outlined button; restarts the step. */
+.flight-controls__redo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  border-radius: 4px;
+  background: transparent;
+  color: #00e5ff;
+  font: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.flight-controls__redo:hover,
+.flight-controls__redo:focus-visible {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: #00e5ff;
+}
+
+.flight-controls__redo svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

@@ -80,6 +80,7 @@ const FLAME_COLORS = {
   methalox: "rd-flame--methalox",
   hydrolox: "rd-flame--hydrolox",
   solid: "rd-flame--solid",
+  hypergolic: "rd-flame--hypergolic", // the lander's engine
 };
 
 const plumePath = (cx, top, half, length) =>
@@ -87,7 +88,7 @@ const plumePath = (cx, top, half, length) =>
    C ${cx - half * 1.15} ${top + length * 0.35} ${cx - half * 0.35} ${top + length * 0.8} ${cx} ${top + length}
    C ${cx + half * 0.35} ${top + length * 0.8} ${cx + half * 1.15} ${top + length * 0.35} ${cx + half} ${top} Z`;
 
-const Flame = ({ cx, top, half, length, kind, seed = 0 }) => (
+export const Flame = ({ cx, top, half, length, kind, seed = 0 }) => (
   <g className={`rd-flame ${FLAME_COLORS[kind]}`} style={{ animationDelay: `${-seed * 0.037}s` }}>
     <g className="rd-flame__inner" style={{ animationDelay: `${-seed * 0.053}s` }}>
       <path className="rd-flame__plume" d={plumePath(cx, top, half, length)} />
@@ -245,7 +246,9 @@ const Srb = ({ cx, bodyH, coreEdgeX, firing = false }) => {
 
 // `throttle` (0–1) lights the bottom stage's engines; `srbsFiring` lights the boosters.
 // `parts` draws only some of the rocket, for pieces falling away after staging:
-// "all" (default), "bottom" (the bottom stage plus any SRBs) or "srbs" (just the boosters).
+// "all" (default), "bottom" (the bottom stage plus any SRBs), "srbs" (just the boosters) or
+// "stages" (every stage and any SRBs, without the spacecraft: the spent stack after the
+// lander leaves it).
 // `srbDrift` ({ dx, dy, angle }) moves each booster outward from its place, mirrored
 // left and right, turning about its base.
 const RocketBody = ({ stages, srbs, throttle = 0, srbsFiring = false, parts = "all", srbDrift }) => {
@@ -256,7 +259,7 @@ const RocketBody = ({ stages, srbs, throttle = 0, srbsFiring = false, parts = "a
     core.half + ENGINE_FLARE,
     ...clusterLayout(core.engines, core.half).map(({ x }) => Math.abs(x) + core.nozzle.exitHalf),
   );
-  const shownStages = { all: placed, bottom: [core], srbs: [] }[parts];
+  const shownStages = { all: placed, bottom: [core], srbs: [], stages: placed }[parts];
 
   return (
     <g>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router";
+import useRedo from "../../hooks/useRedo.js";
 import SplitPane from "../../components/SplitPane/SplitPane.jsx";
 import FlightControls from "../../components/FlightControls/FlightControls.jsx";
 import ThrottleControl from "../../components/ThrottleControl/ThrottleControl.jsx";
@@ -176,6 +177,7 @@ const M1S4 = () => {
 
   // A crash, or running out of fuel short of the goals, ends the mission.
   const navigate = useNavigate();
+  const redo = useRedo();
   useEffect(() => {
     if (!flight.failure) return;
     navigate("/mission-failure", {
@@ -221,7 +223,7 @@ const M1S4 = () => {
       <SplitPane
         left={
           <>
-            <FlightControls
+            <FlightControls onRedo={redo}
               launched={launched}
               note={statusNote(phase, enginesOn, coastWarp)}
             >

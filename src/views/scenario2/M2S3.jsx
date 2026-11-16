@@ -40,23 +40,26 @@ const M2S3 = () => {
   const payloadMass = useSelector(selectLanderMass);
   const plan = useMemo(() => launchPlan(stages, srbs, payloadMass), [stages, srbs, payloadMass]);
 
-  // The burn lasts BURN_SECONDS for a full climb to orbit, less if the fuel runs out first.
-  const burnSeconds = (BURN_SECONDS * plan.delivered) / M2_ORBIT_DELTA_V;
-  const [clock] = useCoast(true, COUNTDOWN + burnSeconds, 1);
-  const time = clock - COUNTDOWN; // mission time, negative during the countdown
-  const burning = time >= 0 && time < burnSeconds;
-  const done = time >= burnSeconds;
-  const gained = (M2_ORBIT_DELTA_V * Math.max(0, time)) / BURN_SECONDS;
-  const now = plan.stateAt(Math.min(gained, plan.delivered));
+  // Mission time runs at one steady warp, chosen so the climb plays in about BURN_SECONDS;
+  // each phase burns for as long as its fuel really lasts, so separations fall when the
+  // tanks run dry.
+  const warp = Math.max(1, Math.round(plan.burnTime / BURN_SECONDS));
+  const [clock] = useCoast(true, COUNTDOWN + plan.burnTime / warp, 1);
+  // Mission time: real seconds (negative) in the countdown, then warped.
+  const time = clock < COUNTDOWN ? clock - COUNTDOWN : (clock - COUNTDOWN) * warp;
+  const burning = time >= 0 && time < plan.burnTime;
+  const done = clock >= COUNTDOWN + plan.burnTime / warp;
+  const gained = plan.deltaVAt(time);
+  const now = plan.stateAt(gained);
   const reached = done && plan.short === 0;
 
-  // The latest separation, for the staging animation.
-  const event = plan.events.findLast((e) => e.deltaV <= gained);
+  // The latest separation, for the staging animation (which runs in real seconds).
+  const event = plan.events.findLast((e) => e.time <= time);
   const separation = event && {
     fromStages: stages.slice(event.stageIndex),
     fromSrbs: event.kind === "srbs" ? srbs : null, // the SRBs always drop before any stage
     kind: event.kind,
-    elapsed: time - (BURN_SECONDS * event.deltaV) / M2_ORBIT_DELTA_V,
+    elapsed: (time - event.time) / warp,
   };
 
   const gauges = [{ key: "stage", label: `Stage ${now.stageIndex + 1}`, fraction: now.stageFuel[now.stageIndex] }];
@@ -80,7 +83,7 @@ const M2S3 = () => {
               meters={[
                 {
                   label: "Speed gained",
-                  value: Math.min(gained, plan.delivered),
+                  value: gained,
                   target: { min: M2_ORBIT_DELTA_V, max: M2_ORBIT_DELTA_V },
                 },
               ]}
@@ -114,7 +117,7 @@ const M2S3 = () => {
           />
         }
       />
-      <MissionClock time={time} warp={1} maxWarp={1} onWarpChange={() => {}} locked />
+      <MissionClock time={time} warp={time < 0 ? 1 : warp} maxWarp={warp} onWarpChange={() => {}} locked />
     </>
   );
 };
