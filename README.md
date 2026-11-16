@@ -12,11 +12,7 @@ Every flight is simulated, so choices made in the designer matter later on. An u
 Finally, technical terms throughout the game have a "?" tip that explains them in plain language, so players with no background in spaceflight can still follow along.
 
 ## How to Use
-To play the game, first install [Node.js](https://nodejs.org/), then download this repository and run the following commands in its folder:
-```
-npm install
-npm run dev
-```
+To play the game, first go to [xPlorer+](https://xsimxplorer.netlify.app/).
 After that, open the link shown in the terminal, and the game will load immediately. On the home page, choose one of the three missions. Read the mission objective, then click Continue at each step to move on through the mission. Hover over or click any "?" to learn what a term means, and use the Redo button beside a flight's title to try that step again.
 
 ## Technologies
@@ -27,14 +23,14 @@ Our team used a series of different languages and libraries to make the creation
 * __React.js:__ An open-source front-end JavaScript library for building user interfaces
 * __Redux.js:__ A JavaScript library primarily used for managing and centralizing application state, here used to store the player's spacecraft, lander, and rocket designs
 * __React Router:__ A library used for moving between the pages of a React app, here used to carry the player from one mission step to the next
-* __X3DOM:__ An open-source framework for showing 3D scenes in the browser, used to draw the orbits and trajectories
+* __X3DOM:__ An open-source framework for showing 3D scenes in the browser, used to draw the orbits and trajectories. It is based off the NASA Mission Viz resource.
 * __Vite:__ A fast build tool and development server for modern web projects
 * __Git:__ An open-source distributed version control system
 * __GitHub:__ A cloud-based platform built on the Git version control system that allows developers to store, manage, and share code and other project files
 * __VSCode:__ Used for a variety of programming tasks and supports a vast range of programming languages through its extension ecosystem
 
 ## Collaborators
-Jeffery Zhou is responsible for the coding, physics, game design, front-end development, and styling to create this game.
+The xSim+ team is responsible for designing, programing, asset-making, and play-testing this project.
 
 ## License
 &copy; Peiqi Zhou, 2026
